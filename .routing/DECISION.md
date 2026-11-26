@@ -24,12 +24,12 @@
 - **Rationale:** Eliminates silent runtime null-dereference bugs present in the PDF, aligns type rigor with the C# `.NET` consumer, and provides compile-time + schema-driven verification gates (`tsc --noEmit`, Vitest + Supertest).
 - **Impact:** Frontend consumes `/openapi.json` (or typed `HttpClient` services aligned to `.routing/SERVICES.md`).
 
-## DEC-002 — Local MySQL 8.0 with Schema-First Drizzle Strategy (`2026-11-25`)
-- **Status:** Accepted
+## DEC-002 — Local MySQL 8.0 with `SCHEMA.sql` DDL Source of Truth & Drizzle Introspection (`2026-11-25`)
+- **Status:** Accepted *(refined with `DEC-012`)*
 - **Baseline Spec / PDF:** Local MySQL 8.0 (`mercadolibrenode`, `utf8mb4`) managed by Sequelize migrations; `BACKEND-API-SPEC.md` assumed an already-existing external schema.
-- **Decision:** Use a local MySQL 8.0 instance with a **schema-first** Drizzle workflow: `src/db/schema.ts` is the authoritative DDL definition pushed/migrated to local MySQL via `drizzle-kit`, populated by an idempotent `src/db/seed.ts` (blocked when `NODE_ENV === 'production'`). Document optional least-privilege runtime DB grants (`SELECT, INSERT, UPDATE, DELETE` only, per PDF p. 9).
-- **Rationale:** Reproducible schema across all 3 teammates without Docker overhead, while preventing accidental test-credential seeding in production.
-- **Impact:** Teammates run local MySQL 8.0 + `drizzle-kit` push/migrate + `npm run db:seed`.
+- **Decision:** Use a local MySQL 8.0 instance with **`backendnode/db/SCHEMA.sql` as the authoritative pure-DDL source of truth**, applied via `npm run setup:db` (or `mysql -u root -p`), while `src/db/schema.ts` stays 1:1 aligned (verifiable via `drizzle-kit pull` introspection and automated Vitest parity tests) and `src/db/seed.ts` populates initial data idempotently (blocked when `NODE_ENV === 'production'`).
+- **Rationale:** Keeps clean, auditable MySQL DDL for teammates and grading while allowing the runtime MySQL user to hold least-privilege DML grants (`SELECT, INSERT, UPDATE, DELETE` only — which still supports `drizzle-kit pull` via `INFORMATION_SCHEMA`).
+- **Impact:** Teammates bootstrap local MySQL cleanly with `npm run setup:env` → `npm run setup:db` → `npm run db:seed`.
 
 ## DEC-003 — DB-Checked Sliding JWT Refresh (`2026-11-25`)
 - **Status:** Accepted
@@ -115,3 +115,13 @@
 - **Decision:** Operate with 3 dedicated router roles (`$router`, `$frontend-router`, `$security-audit`), committed `.routing/` and `.tickets/` (`B*`/`F*` prefixes), single-writer file ownership + one-way handoff outboxes, a 5-state ticket lifecycle (`draft → dispatched → implemented → changes-requested → completed`), Conventional Commits with body overviews, and mandatory pre-commit remote reconciliation.
 - **Rationale:** Enables 3 teammates to work concurrently without GitHub merge conflicts while ensuring every implemented ticket passes an independent adversarial security audit before completion.
 - **Impact:** Documented in [README.md](../README.md), [CONTEXT.md](CONTEXT.md), and all skills in `.gemini/skills/`.
+
+## DEC-012 — Allowlisted Pure-DDL `SCHEMA.sql` & Automated Least-Privilege Setup Scripts (`2026-11-25`)
+- **Status:** Accepted
+- **Baseline Spec / PDF:** `.gitignore` excluded all `*.sql`; PDF p. 9 instructed students to create `bd.sql` with DB creation and manually run `CREATE USER` / `GRANT` commands (and showed hardcoded `M3rc@d0` and a leaked `JWT_SECRET`).
+- **Decision:**
+  - Keep `*.sql` ignored in root `.gitignore` by default, adding one explicit allowlist exception `!backendnode/db/SCHEMA.sql`.
+  - Keep `backendnode/db/SCHEMA.sql` strictly **pure DDL** (database + 7 `CREATE TABLE IF NOT EXISTS` statements, zero `CREATE USER`, zero passwords, zero data).
+  - Provide cross-platform Node scripts: `npm run setup:env` (`scripts/setup-env.mjs`, generates `.env` with a fresh 70-char hex `JWT_SECRET` without overwriting existing `.env`) and `npm run setup:db` (`scripts/setup-db.mjs`, prompts for masked MySQL `root` password, applies `SCHEMA.sql`, strictly regex-validates `DB_USER`/`DB_DATABASE`, rejects `root` as app user, and grants least-privilege `SELECT, INSERT, UPDATE, DELETE` only).
+- **Rationale:** Zero hardcoded secrets in Git, eliminates weak/copied PDF secrets, enforces least-privilege MySQL runtime accounts (**OWASP / PDF p. 9**), and avoids Windows PowerShell `ExecutionPolicy` blocks across all 3 teammates.
+- **Impact:** Teammates run `npm run setup:env` and `npm run setup:db`; Vitest enforces `SCHEMA.sql` ↔ `src/db/schema.ts` parity and bans credential statements in `SCHEMA.sql`.
