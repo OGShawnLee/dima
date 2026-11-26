@@ -1,0 +1,45 @@
+[Unit]
+Description=Dima frontendnet (ASP.NET Core MVC BFF)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=frontendnet
+Group=frontendnet
+WorkingDirectory=/opt/frontendnet
+ExecStart=/opt/frontendnet/frontendnet
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+SyslogIdentifier=frontendnet
+
+# Non-secret configuration (no secrets are needed by the BFF itself)
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+Environment=UrlWebAPI=https://api.dima.lab
+Environment=DataProtection__KeysPath=/var/lib/frontendnet/keys
+Environment=DOTNET_NOLOGO=1
+Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+
+# Persistent state: Data Protection keys survive restarts so cookies stay valid
+StateDirectory=frontendnet
+StateDirectoryMode=0700
+LogsDirectory=frontendnet
+
+# Hardening (do NOT add MemoryDenyWriteExecute: it breaks the .NET JIT)
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target
