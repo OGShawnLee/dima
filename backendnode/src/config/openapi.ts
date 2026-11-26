@@ -5,6 +5,7 @@ import { registerAuthPaths } from '../schemas/auth.schema';
 import { registerBitacoraPaths } from '../schemas/bitacora.schema';
 import { registerCategoriasPaths } from '../schemas/categorias.schema';
 import { ErrorResponseSchema } from '../schemas/common.schema';
+import { registerPedidosPaths } from '../schemas/pedidos.schema';
 import { registerProductosPaths } from '../schemas/productos.schema';
 import { registerRolesPaths } from '../schemas/roles.schema';
 import { registerUsuariosPaths } from '../schemas/usuarios.schema';
@@ -26,6 +27,7 @@ export function generateOpenApiDocument(): OpenAPIObject {
   registerUsuariosPaths(registry);
   registerCategoriasPaths(registry);
   registerProductosPaths(registry);
+  registerPedidosPaths(registry);
   registerArchivosPaths(registry);
 
   const generator = new OpenApiGeneratorV3(registry.definitions);

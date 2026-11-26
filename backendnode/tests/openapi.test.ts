@@ -45,6 +45,14 @@ const EXPECTED_SCHEMAS = [
   'CreateProductoRequest',
   'UpdateProductoRequest',
   'AssignCategoriaRequest',
+  'CreatePedidoRequest',
+  'PedidoCreatedDto',
+  'PedidoSummaryDto',
+  'PedidoSummaryListResponse',
+  'PedidoAdminSummaryDto',
+  'PedidoAdminSummaryListResponse',
+  'PedidoLineaDto',
+  'PedidoDetailDto',
   'ArchivoMetadataDto',
   'ErrorResponse',
 ] as const;
@@ -78,6 +86,11 @@ const EXPECTED_OPERATION_IDS = [
   'DeleteProducto',
   'AssignProductoCategoria',
   'RemoveProductoCategoria',
+  // Pedidos
+  'CreatePedido',
+  'GetMyPedidos',
+  'GetPedidos',
+  'GetPedidoById',
   // Archivos
   'GetArchivos',
   'DownloadArchivo',
@@ -182,6 +195,8 @@ describe('B008 OpenAPI 3.0.3 Registry, Full Route Wiring & Integration Suite', (
       '/api/usuarios',
       '/api/categorias',
       '/api/productos',
+      '/api/pedidos',
+      '/api/pedidos/mios',
       '/api/archivos',
       '/api/auth/tiempo',
     ])('rejects unauthenticated GET %s with 401 and keeps helmet headers active', async (route) => {

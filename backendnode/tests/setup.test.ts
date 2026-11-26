@@ -8,6 +8,8 @@ import {
   bitacora,
   categoria,
   categoriaproducto,
+  pedido,
+  pedidodetalle,
   producto,
   rol,
   usuario,
@@ -50,7 +52,9 @@ describe('B003 SCHEMA.sql & Automated Least-Privilege Setup Scripts', () => {
       ['bitacora', bitacora],
       ['usuario', usuario],
       ['producto', producto],
+      ['pedido', pedido],
       ['categoriaproducto', categoriaproducto],
+      ['pedidodetalle', pedidodetalle],
     ])('defines table %s and every column from Drizzle schema', (tableName, table) => {
       const block = extractCreateTableBlock(schemaSql, tableName);
       const config = getTableConfig(table);
@@ -82,6 +86,21 @@ describe('B003 SCHEMA.sql & Automated Least-Privilege Setup Scripts', () => {
       );
       expect(joinBlock).toMatch(
         /FOREIGN KEY\s+\(`productoid`\)\s+REFERENCES\s+`producto`\s+\(`id`\)\s+ON UPDATE CASCADE\s+ON DELETE CASCADE/i,
+      );
+
+      const pedidoBlock = extractCreateTableBlock(schemaSql, 'pedido');
+      expect(pedidoBlock).toMatch(/`total`\s+DECIMAL\(10,2\)\s+NOT NULL/i);
+      expect(pedidoBlock).toMatch(
+        /FOREIGN KEY\s+\(`usuarioid`\)\s+REFERENCES\s+`usuario`\s+\(`id`\)\s+ON UPDATE CASCADE\s+ON DELETE CASCADE/i,
+      );
+
+      const detalleBlock = extractCreateTableBlock(schemaSql, 'pedidodetalle');
+      expect(detalleBlock).toMatch(/`preciounitario`\s+DECIMAL\(10,2\)\s+NOT NULL/i);
+      expect(detalleBlock).toMatch(
+        /FOREIGN KEY\s+\(`pedidoid`\)\s+REFERENCES\s+`pedido`\s+\(`id`\)\s+ON UPDATE CASCADE\s+ON DELETE CASCADE/i,
+      );
+      expect(detalleBlock).toMatch(
+        /FOREIGN KEY\s+\(`productoid`\)\s+REFERENCES\s+`producto`\s+\(`id`\)\s+ON UPDATE CASCADE\s+ON DELETE SET NULL/i,
       );
     });
   });

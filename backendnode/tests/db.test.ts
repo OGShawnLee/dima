@@ -6,6 +6,8 @@ import {
   bitacora,
   categoria,
   categoriaproducto,
+  pedido,
+  pedidodetalle,
   producto,
   rol,
   usuario,
@@ -29,7 +31,9 @@ describe('B002 Database Schema & Idempotent Seeder', () => {
       ['bitacora', bitacora],
       ['usuario', usuario],
       ['producto', producto],
+      ['pedido', pedido],
       ['categoriaproducto', categoriaproducto],
+      ['pedidodetalle', pedidodetalle],
     ])('defines singular table %s with createdAt and updatedAt', (expectedName, table) => {
       const config = getTableConfig(table);
       expect(config.name).toBe(expectedName);
@@ -123,6 +127,44 @@ describe('B002 Database Schema & Idempotent Seeder', () => {
       expect(prodFk!.ref.foreignColumns[0].name).toBe('id');
       expect(prodFk!.fk.onUpdate).toBe('cascade');
       expect(prodFk!.fk.onDelete).toBe('cascade');
+    });
+
+    it('defines pedido.usuarioid -> usuario.id (cascade / cascade)', () => {
+      const config = getTableConfig(pedido);
+      expect(config.foreignKeys).toHaveLength(1);
+      const fk = config.foreignKeys[0];
+      const ref = fk.reference();
+      expect(ref.columns.map((c) => c.name)).toEqual(['usuarioid']);
+      expect(getTableConfig(ref.foreignTable).name).toBe('usuario');
+      expect(ref.foreignColumns.map((c) => c.name)).toEqual(['id']);
+      expect(fk.onUpdate).toBe('cascade');
+      expect(fk.onDelete).toBe('cascade');
+    });
+
+    it('defines pedidodetalle FKs to pedido.id (cascade/cascade) and producto.id (cascade/set null)', () => {
+      const config = getTableConfig(pedidodetalle);
+      expect(config.foreignKeys).toHaveLength(2);
+
+      const byLocalCol = new Map(
+        config.foreignKeys.map((fk) => {
+          const ref = fk.reference();
+          return [ref.columns[0].name, { fk, ref }];
+        }),
+      );
+
+      const pedidoFk = byLocalCol.get('pedidoid');
+      expect(pedidoFk).toBeDefined();
+      expect(getTableConfig(pedidoFk!.ref.foreignTable).name).toBe('pedido');
+      expect(pedidoFk!.ref.foreignColumns[0].name).toBe('id');
+      expect(pedidoFk!.fk.onUpdate).toBe('cascade');
+      expect(pedidoFk!.fk.onDelete).toBe('cascade');
+
+      const prodFk = byLocalCol.get('productoid');
+      expect(prodFk).toBeDefined();
+      expect(getTableConfig(prodFk!.ref.foreignTable).name).toBe('producto');
+      expect(prodFk!.ref.foreignColumns[0].name).toBe('id');
+      expect(prodFk!.fk.onUpdate).toBe('cascade');
+      expect(prodFk!.fk.onDelete).toBe('set null');
     });
   });
 

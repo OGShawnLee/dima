@@ -86,7 +86,22 @@ CREATE TABLE IF NOT EXISTS `producto` (
     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Layer 2: Join tables
+CREATE TABLE IF NOT EXISTS `pedido` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `usuarioid` VARCHAR(36) NOT NULL,
+  `total` DECIMAL(10,2) NOT NULL,
+  `fecha` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `estado` VARCHAR(50) NOT NULL DEFAULT 'pendiente',
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_pedido_usuario`
+    FOREIGN KEY (`usuarioid`) REFERENCES `usuario` (`id`)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Layer 2: Join tables & order line items
 
 CREATE TABLE IF NOT EXISTS `categoriaproducto` (
   `categoriaid` INT NOT NULL,
@@ -102,4 +117,24 @@ CREATE TABLE IF NOT EXISTS `categoriaproducto` (
     FOREIGN KEY (`productoid`) REFERENCES `producto` (`id`)
     ON UPDATE CASCADE
     ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `pedidodetalle` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `pedidoid` INT NOT NULL,
+  `productoid` INT NULL,
+  `titulo` VARCHAR(255) NOT NULL,
+  `preciounitario` DECIMAL(10,2) NOT NULL,
+  `cantidad` INT NOT NULL,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_pedidodetalle_pedido`
+    FOREIGN KEY (`pedidoid`) REFERENCES `pedido` (`id`)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_pedidodetalle_producto`
+    FOREIGN KEY (`productoid`) REFERENCES `producto` (`id`)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

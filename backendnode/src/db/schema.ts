@@ -86,7 +86,18 @@ export const producto = mysqlTable('producto', {
   ...timestamps,
 });
 
-// Layer 2 (Join tables)
+export const pedido = mysqlTable('pedido', {
+  id: int('id').autoincrement().primaryKey(),
+  usuarioid: varchar('usuarioid', { length: 36 })
+    .notNull()
+    .references(() => usuario.id, { onUpdate: 'cascade', onDelete: 'cascade' }),
+  total: decimal('total', { precision: 10, scale: 2 }).notNull(),
+  fecha: datetime('fecha').notNull().default(sql`CURRENT_TIMESTAMP`),
+  estado: varchar('estado', { length: 50 }).notNull().default('pendiente'),
+  ...timestamps,
+});
+
+// Layer 2 (Join tables & order line items)
 
 export const categoriaproducto = mysqlTable(
   'categoriaproducto',
@@ -102,17 +113,33 @@ export const categoriaproducto = mysqlTable(
   (table) => [primaryKey({ columns: [table.categoriaid, table.productoid] })],
 );
 
+export const pedidodetalle = mysqlTable('pedidodetalle', {
+  id: int('id').autoincrement().primaryKey(),
+  pedidoid: int('pedidoid')
+    .notNull()
+    .references(() => pedido.id, { onUpdate: 'cascade', onDelete: 'cascade' }),
+  productoid: int('productoid').references(() => producto.id, {
+    onUpdate: 'cascade',
+    onDelete: 'set null',
+  }),
+  titulo: varchar('titulo', { length: 255 }).notNull(),
+  preciounitario: decimal('preciounitario', { precision: 10, scale: 2 }).notNull(),
+  cantidad: int('cantidad').notNull(),
+  ...timestamps,
+});
+
 // Drizzle Relations
 
 export const rolRelations = relations(rol, ({ many }) => ({
   usuarios: many(usuario),
 }));
 
-export const usuarioRelations = relations(usuario, ({ one }) => ({
+export const usuarioRelations = relations(usuario, ({ one, many }) => ({
   rol: one(rol, {
     fields: [usuario.rolid],
     references: [rol.id],
   }),
+  pedidos: many(pedido),
 }));
 
 export const archivoRelations = relations(archivo, ({ many }) => ({
@@ -129,6 +156,7 @@ export const productoRelations = relations(producto, ({ one, many }) => ({
     references: [archivo.id],
   }),
   categoriaproductos: many(categoriaproducto),
+  pedidodetalles: many(pedidodetalle),
 }));
 
 export const categoriaproductoRelations = relations(categoriaproducto, ({ one }) => ({
@@ -138,6 +166,25 @@ export const categoriaproductoRelations = relations(categoriaproducto, ({ one })
   }),
   producto: one(producto, {
     fields: [categoriaproducto.productoid],
+    references: [producto.id],
+  }),
+}));
+
+export const pedidoRelations = relations(pedido, ({ one, many }) => ({
+  usuario: one(usuario, {
+    fields: [pedido.usuarioid],
+    references: [usuario.id],
+  }),
+  detalles: many(pedidodetalle),
+}));
+
+export const pedidodetalleRelations = relations(pedidodetalle, ({ one }) => ({
+  pedido: one(pedido, {
+    fields: [pedidodetalle.pedidoid],
+    references: [pedido.id],
+  }),
+  producto: one(producto, {
+    fields: [pedidodetalle.productoid],
     references: [producto.id],
   }),
 }));
@@ -164,3 +211,9 @@ export type NewProducto = typeof producto.$inferInsert;
 
 export type CategoriaProducto = typeof categoriaproducto.$inferSelect;
 export type NewCategoriaProducto = typeof categoriaproducto.$inferInsert;
+
+export type Pedido = typeof pedido.$inferSelect;
+export type NewPedido = typeof pedido.$inferInsert;
+
+export type PedidoDetalle = typeof pedidodetalle.$inferSelect;
+export type NewPedidoDetalle = typeof pedidodetalle.$inferInsert;

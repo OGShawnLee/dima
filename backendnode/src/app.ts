@@ -11,6 +11,7 @@ import { archivosRouter } from './routes/archivos.routes';
 import { authRouter } from './routes/auth.routes';
 import { bitacoraRouter } from './routes/bitacora.routes';
 import { categoriasRouter } from './routes/categorias.routes';
+import { pedidosRouter } from './routes/pedidos.routes';
 import { productosRouter } from './routes/productos.routes';
 import { rolesRouter } from './routes/roles.routes';
 import { usuariosRouter } from './routes/usuarios.routes';
@@ -74,6 +75,7 @@ export function createApp(options?: CreateAppOptions): Express {
     app.use('/api/usuarios', usuariosRouter);
     app.use('/api/categorias', categoriasRouter);
     app.use('/api/productos', productosRouter);
+    app.use('/api/pedidos', pedidosRouter);
     app.use('/api/archivos', archivosRouter);
   }
 
