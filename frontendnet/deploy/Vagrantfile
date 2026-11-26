@@ -1,0 +1,54 @@
+# Dima lab topology: 3 servers on an isolated libvirt network (no NAT forwarding on 10.10.10.0/24).
+# Host (10.10.10.1) reaches the VMs directly; Vagrant SSH uses the default management network.
+#
+#   web  10.10.10.10  nginx 443 -> Kestrel 127.0.0.1:5000   (frontendnet)
+#   api  10.10.10.20  nginx 443 -> Node    127.0.0.1:3000   (backendnode)
+#   db   10.10.10.30  MySQL 8.0 3306 (only from api)
+#
+# Usage (from frontendnet/deploy/):  vagrant up --provider=libvirt
+# Swap BOX for the Ubuntu LTS box you already use with vagrant-libvirt if this one is not cached.
+
+BOX = ENV.fetch("DIMA_BOX", "cloud-image/ubuntu-24.04")
+
+SERVERS = {
+  "web" => { ip: "10.10.10.10", memory: 1536, cpus: 2 },
+  "api" => { ip: "10.10.10.20", memory: 1536, cpus: 2 },
+  "db"  => { ip: "10.10.10.30", memory: 2048, cpus: 2 },
+}
+
+HOSTS_ENTRIES = <<~HOSTS
+  10.10.10.10 web.dima.lab
+  10.10.10.20 api.dima.lab
+  10.10.10.30 db.dima.lab
+HOSTS
+
+Vagrant.configure("2") do |config|
+  config.vm.box = BOX
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
+  SERVERS.each do |name, opts|
+    config.vm.define name do |node|
+      node.vm.hostname = "#{name}.dima.lab"
+      node.vm.network :private_network,
+        ip: opts[:ip],
+        libvirt__network_name: "dima-lab",
+        libvirt__dhcp_enabled: false,
+        libvirt__forward_mode: "none"
+
+      node.vm.provider :libvirt do |lv|
+        lv.memory = opts[:memory]
+        lv.cpus = opts[:cpus]
+        lv.autostart = true # VM boots with the host (rubric test 5)
+      end
+
+      node.vm.provision "shell", inline: <<~SHELL
+        set -euo pipefail
+        grep -q "dima.lab" /etc/hosts || printf '%s\n' "#{HOSTS_ENTRIES}" >> /etc/hosts
+        timedatectl set-timezone America/Mexico_City
+        apt-get update -y
+        DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
+        DEBIAN_FRONTEND=noninteractive apt-get install -y ufw unattended-upgrades ca-certificates curl
+      SHELL
+    end
+  end
+end
