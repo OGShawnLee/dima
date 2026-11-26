@@ -1,6 +1,7 @@
 # Course PDFs & local SQL dumps
 *.pdf
 *.sql
+!backendnode/db/SCHEMA.sql
 
 # Environment & secrets
 .env
