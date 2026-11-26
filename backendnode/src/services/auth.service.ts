@@ -1,13 +1,17 @@
+import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
 import { db, type DbClient } from '../db';
 import { rol, usuario } from '../db/schema';
-import type { LoginRequest, LoginResponse } from '../schemas/auth.schema';
+import type { LoginRequest, LoginResponse, RegisterRequest } from '../schemas/auth.schema';
 import { RoleNameSchema, type AuditContext, type RoleName } from '../schemas/common.schema';
+import type { UsuarioDto } from '../schemas/usuarios.schema';
 import { bitacoraService, type IBitacoraService } from './bitacora.service';
 import { jwtTokenService, type IJwtTokenService } from './jwttoken.service';
-import { unauthorized } from '../utils/httpError';
+import { createRolesService, rolesService, type IRolesService } from './roles.service';
+import { badRequest, conflict, unauthorized } from '../utils/httpError';
 
+const BCRYPT_COST = 10;
 const INVALID_CREDENTIALS_MESSAGE = 'Usuario o contraseña incorrectos.';
 // Pre-computed bcrypt cost-10 hash used for constant-time comparison when email is unknown (DEC-009).
 const DUMMY_BCRYPT_HASH = '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
@@ -19,18 +23,54 @@ export interface AuthUserRecord {
   rol: RoleName;
 }
 
+export interface InsertRegisteredUserData {
+  id: string;
+  email: string;
+  passwordhash: string;
+  nombre: string;
+  protegido: boolean;
+  rolid: string;
+}
+
 export type FindAuthUserByEmail = (email: string) => Promise<AuthUserRecord | null>;
+export type InsertRegisteredUser = (data: InsertRegisteredUserData) => Promise<void>;
 
 export interface IAuthService {
   login(input: LoginRequest, audit: AuditContext): Promise<LoginResponse>;
+  register(input: RegisterRequest, audit: AuditContext): Promise<UsuarioDto>;
   obtenerTiempoRestante(bearerHeader: string | undefined): string | null;
 }
 
 export interface AuthServiceDeps {
   findUserByEmail?: FindAuthUserByEmail;
+  insertRegisteredUser?: InsertRegisteredUser;
+  rolesService?: IRolesService;
   jwtService?: IJwtTokenService;
   bitacora?: IBitacoraService;
   database?: DbClient;
+}
+
+function isDuplicateEntryError(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) {
+    return false;
+  }
+  const candidate = err as { code?: unknown; errno?: unknown };
+  return candidate.code === 'ER_DUP_ENTRY' || candidate.errno === 1062;
+}
+
+export function createDefaultInsertRegisteredUser(
+  database: DbClient = db,
+): InsertRegisteredUser {
+  return async (data: InsertRegisteredUserData): Promise<void> => {
+    await database.insert(usuario).values({
+      id: data.id,
+      email: data.email,
+      passwordhash: data.passwordhash,
+      nombre: data.nombre,
+      protegido: data.protegido,
+      rolid: data.rolid,
+    });
+  };
 }
 
 export function createDefaultFindAuthUserByEmail(
@@ -70,12 +110,18 @@ export function createDefaultFindAuthUserByEmail(
 
 export class AuthService implements IAuthService {
   private readonly findUserByEmail: FindAuthUserByEmail;
+  private readonly insertRegisteredUser: InsertRegisteredUser;
+  private readonly roles: IRolesService;
   private readonly jwtService: IJwtTokenService;
   private readonly bitacora: IBitacoraService;
 
   constructor(deps?: AuthServiceDeps) {
     this.findUserByEmail =
       deps?.findUserByEmail ?? createDefaultFindAuthUserByEmail(deps?.database);
+    this.insertRegisteredUser =
+      deps?.insertRegisteredUser ?? createDefaultInsertRegisteredUser(deps?.database);
+    this.roles =
+      deps?.rolesService ?? (deps?.database ? createRolesService(deps.database) : rolesService);
     this.jwtService = deps?.jwtService ?? jwtTokenService;
     this.bitacora = deps?.bitacora ?? bitacoraService;
   }
@@ -119,6 +165,54 @@ export class AuthService implements IAuthService {
       nombre: user.nombre,
       rol: user.rol,
       jwt,
+    };
+  }
+
+  async register(input: RegisterRequest, audit: AuditContext): Promise<UsuarioDto> {
+    const normalizedEmail = input.email.trim().toLowerCase();
+    const nombre = input.nombre.trim();
+
+    const usuarioRole = await this.roles.findByNombre('Usuario');
+    if (!usuarioRole) {
+      throw badRequest('El rol especificado no existe.');
+    }
+
+    const existing = await this.findUserByEmail(normalizedEmail);
+    if (existing) {
+      throw conflict('El correo electrónico ya está registrado.');
+    }
+
+    const passwordhash = await bcrypt.hash(input.password, BCRYPT_COST);
+    const id = crypto.randomUUID();
+
+    try {
+      await this.insertRegisteredUser({
+        id,
+        email: normalizedEmail,
+        passwordhash,
+        nombre,
+        protegido: false,
+        rolid: usuarioRole.id,
+      });
+    } catch (err) {
+      if (isDuplicateEntryError(err)) {
+        throw conflict('El correo electrónico ya está registrado.');
+      }
+      throw err;
+    }
+
+    await this.bitacora.registrar({
+      accion: 'usuario.registro',
+      elementoid: normalizedEmail,
+      ip: audit.ip,
+      usuario: normalizedEmail,
+    });
+
+    return {
+      id,
+      email: normalizedEmail,
+      nombre,
+      rol: 'Usuario',
     };
   }
 

@@ -14,6 +14,7 @@ import { createAuthRouter } from '../src/routes/auth.routes';
 import { registerAuthPaths } from '../src/schemas/auth.schema';
 import { AuthService, type IAuthService } from '../src/services/auth.service';
 import type { IBitacoraService } from '../src/services/bitacora.service';
+import type { IRolesService } from '../src/services/roles.service';
 import {
   createJwtTokenService,
   JWT_AUDIENCE,
@@ -332,6 +333,7 @@ describe('B004 Auth, JWT, RBAC & DB-Checked Sliding Refresh', () => {
     it('returns 404 cleanly without ERR_HTTP_HEADERS_SENT when remaining time is unavailable', async () => {
       const stubService: IAuthService = {
         login: vi.fn(),
+        register: vi.fn(),
         obtenerTiempoRestante: vi.fn(() => null),
       };
 
@@ -578,13 +580,255 @@ describe('B004 Auth, JWT, RBAC & DB-Checked Sliding Refresh', () => {
     });
   });
 
+  describe('POST /api/auth/registro', () => {
+    const USER_ROLE_ID = '22222222-2222-4222-8222-222222222222';
+    const ADMIN_ROLE_ID = '11111111-1111-4111-8111-111111111111';
+
+    function createRolesStub(): IRolesService {
+      return {
+        getAll: async () => [
+          { id: ADMIN_ROLE_ID, nombre: 'Administrador' },
+          { id: USER_ROLE_ID, nombre: 'Usuario' },
+        ],
+        findByNombre: async (nombre) =>
+          nombre === 'Usuario'
+            ? { id: USER_ROLE_ID, nombre: 'Usuario' }
+            : { id: ADMIN_ROLE_ID, nombre: 'Administrador' },
+      };
+    }
+
+    it('returns 201 UsuarioDto, hashes with bcrypt(10), forces rol=Usuario & protegido=false, and logs usuario.registro', async () => {
+      const hashSpy = vi.spyOn(bcrypt, 'hash');
+      const insertMock = vi.fn(async () => {});
+      const registrarMock = vi.fn(async () => {});
+      const authService = new AuthService({
+        findUserByEmail: async () => null,
+        insertRegisteredUser: insertMock,
+        rolesService: createRolesStub(),
+        jwtService: createJwtTokenService(TEST_JWT_SECRET),
+        bitacora: { registrar: registrarMock, getAll: vi.fn(async () => []) },
+      });
+
+      const app = createApp({
+        logFilePath: createTempLogFile(),
+        nodeEnv: 'test',
+        registerRoutes: (expressApp) => {
+          expressApp.use(
+            '/api/auth',
+            createAuthRouter({
+              service: authService,
+              rateLimiter: createAuthRateLimiter({ max: 50 }),
+            }),
+          );
+        },
+      });
+
+      const res = await request(app).post('/api/auth/registro').send({
+        email: '  Cliente@Dima.Local ',
+        nombre: '  Cliente Nuevo  ',
+        password: 'Segura2026!Ab',
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body).toEqual({
+        id: expect.any(String),
+        email: 'cliente@dima.local',
+        nombre: 'Cliente Nuevo',
+        rol: 'Usuario',
+      });
+      expect(res.body.passwordhash).toBeUndefined();
+      expect(res.body.rolid).toBeUndefined();
+      expect(hashSpy).toHaveBeenCalledWith('Segura2026!Ab', 10);
+      expect(insertMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'cliente@dima.local',
+          nombre: 'Cliente Nuevo',
+          protegido: false,
+          rolid: USER_ROLE_ID,
+        }),
+      );
+      expect(registrarMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accion: 'usuario.registro',
+          elementoid: 'cliente@dima.local',
+          usuario: 'cliente@dima.local',
+        }),
+      );
+      expect(JSON.stringify(res.body)).not.toContain('Segura2026!Ab');
+    });
+
+    it('strips rol=Administrador and protegido=true mass-assignment fields (CWE-915)', async () => {
+      const insertMock = vi.fn(async () => {});
+      const authService = new AuthService({
+        findUserByEmail: async () => null,
+        insertRegisteredUser: insertMock,
+        rolesService: createRolesStub(),
+        jwtService: createJwtTokenService(TEST_JWT_SECRET),
+        bitacora: { registrar: vi.fn(async () => {}), getAll: vi.fn(async () => []) },
+      });
+
+      const app = createApp({
+        logFilePath: createTempLogFile(),
+        nodeEnv: 'test',
+        registerRoutes: (expressApp) => {
+          expressApp.use(
+            '/api/auth',
+            createAuthRouter({
+              service: authService,
+              rateLimiter: createAuthRateLimiter({ max: 50 }),
+            }),
+          );
+        },
+      });
+
+      const res = await request(app).post('/api/auth/registro').send({
+        email: 'escalate@dima.local',
+        nombre: 'Atacante',
+        password: 'Segura2026!Ab',
+        rol: 'Administrador',
+        protegido: true,
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body.rol).toBe('Usuario');
+      expect(insertMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          protegido: false,
+          rolid: USER_ROLE_ID,
+        }),
+      );
+    });
+
+    it('rejects weak passwords with 400 and structured detalles', async () => {
+      const insertMock = vi.fn(async () => {});
+      const authService = new AuthService({
+        findUserByEmail: async () => null,
+        insertRegisteredUser: insertMock,
+        rolesService: createRolesStub(),
+        jwtService: createJwtTokenService(TEST_JWT_SECRET),
+        bitacora: { registrar: vi.fn(async () => {}), getAll: vi.fn(async () => []) },
+      });
+
+      const app = createApp({
+        logFilePath: createTempLogFile(),
+        nodeEnv: 'test',
+        registerRoutes: (expressApp) => {
+          expressApp.use(
+            '/api/auth',
+            createAuthRouter({
+              service: authService,
+              rateLimiter: createAuthRateLimiter({ max: 50 }),
+            }),
+          );
+        },
+      });
+
+      for (const weakPassword of [
+        'Ab1!short',
+        'segura2026!ab',
+        'SEGURA2026!AB',
+        'SeguraPass!Ab',
+        'Segura2026Abc',
+      ]) {
+        const res = await request(app).post('/api/auth/registro').send({
+          email: 'weak@dima.local',
+          nombre: 'Weak',
+          password: weakPassword,
+        });
+        expect(res.status).toBe(400);
+        expect(Array.isArray(res.body.detalles)).toBe(true);
+      }
+      expect(insertMock).not.toHaveBeenCalled();
+    });
+
+    it('returns 409 on duplicate email', async () => {
+      const authService = new AuthService({
+        findUserByEmail: async (email) =>
+          email === 'dup@dima.local'
+            ? {
+                email: 'dup@dima.local',
+                nombre: 'Dup',
+                passwordhash: '$2b$10$hash',
+                rol: 'Usuario',
+              }
+            : null,
+        insertRegisteredUser: vi.fn(async () => {}),
+        rolesService: createRolesStub(),
+        jwtService: createJwtTokenService(TEST_JWT_SECRET),
+        bitacora: { registrar: vi.fn(async () => {}), getAll: vi.fn(async () => []) },
+      });
+
+      const app = createApp({
+        logFilePath: createTempLogFile(),
+        nodeEnv: 'test',
+        registerRoutes: (expressApp) => {
+          expressApp.use(
+            '/api/auth',
+            createAuthRouter({
+              service: authService,
+              rateLimiter: createAuthRateLimiter({ max: 50 }),
+            }),
+          );
+        },
+      });
+
+      const res = await request(app).post('/api/auth/registro').send({
+        email: 'DUP@dima.local',
+        nombre: 'Dup',
+        password: 'Segura2026!Ab',
+      });
+
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({ mensaje: 'El correo electrónico ya está registrado.' });
+    });
+
+    it('enforces 429 rate limit on /api/auth/registro', async () => {
+      const insertMock = vi.fn(async () => {});
+      const authService = new AuthService({
+        findUserByEmail: async () => null,
+        insertRegisteredUser: insertMock,
+        rolesService: createRolesStub(),
+        jwtService: createJwtTokenService(TEST_JWT_SECRET),
+        bitacora: { registrar: vi.fn(async () => {}), getAll: vi.fn(async () => []) },
+      });
+
+      const app = createApp({
+        logFilePath: createTempLogFile(),
+        nodeEnv: 'test',
+        registerRoutes: (expressApp) => {
+          expressApp.use(
+            '/api/auth',
+            createAuthRouter({
+              service: authService,
+              registerRateLimiter: createAuthRateLimiter({ windowMs: 60_000, max: 2 }),
+            }),
+          );
+        },
+      });
+
+      const payload = {
+        email: 'rate@dima.local',
+        nombre: 'Rate User',
+        password: 'Segura2026!Ab',
+      };
+
+      expect((await request(app).post('/api/auth/registro').send(payload)).status).toBe(201);
+      expect((await request(app).post('/api/auth/registro').send(payload)).status).toBe(201);
+      expect((await request(app).post('/api/auth/registro').send(payload)).status).toBe(429);
+      expect(insertMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('OpenAPI Registration', () => {
-    it('registers Login and GetTokenRemainingTime with text/plain for /tiempo', () => {
+    it('registers Login, Register, and GetTokenRemainingTime with text/plain for /tiempo', () => {
       const registry = new OpenAPIRegistry();
       registerAuthPaths(registry);
 
       const loginRoute = registry.definitions.find(
         (d) => d.type === 'route' && d.route.path === '/api/auth',
+      );
+      const registerRoute = registry.definitions.find(
+        (d) => d.type === 'route' && d.route.path === '/api/auth/registro',
       );
       const tiempoRoute = registry.definitions.find(
         (d) => d.type === 'route' && d.route.path === '/api/auth/tiempo',
@@ -593,6 +837,12 @@ describe('B004 Auth, JWT, RBAC & DB-Checked Sliding Refresh', () => {
       expect(loginRoute).toBeDefined();
       if (loginRoute && loginRoute.type === 'route') {
         expect(loginRoute.route.operationId).toBe('Login');
+      }
+
+      expect(registerRoute).toBeDefined();
+      if (registerRoute && registerRoute.type === 'route') {
+        expect(registerRoute.route.operationId).toBe('Register');
+        expect(registerRoute.route.security).toBeUndefined();
       }
 
       expect(tiempoRoute).toBeDefined();

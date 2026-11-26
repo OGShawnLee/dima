@@ -1,6 +1,7 @@
 import type { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
-import { ErrorResponseSchema, RoleNameSchema } from './common.schema';
+import { ErrorResponseSchema, RoleNameSchema, StrongPasswordSchema } from './common.schema';
+import { UsuarioDtoSchema } from './usuarios.schema';
 
 export const LoginRequestSchema = z
   .object({
@@ -18,6 +19,14 @@ export const LoginResponseSchema = z
   })
   .openapi('LoginResponse');
 
+export const RegisterRequestSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email().max(255),
+    nombre: z.string().trim().min(1).max(255),
+    password: StrongPasswordSchema,
+  })
+  .openapi('RegisterRequest');
+
 export const TokenTimeResponseSchema = z
   .string()
   .regex(/^00:\d{2}:\d{2}$/)
@@ -25,10 +34,12 @@ export const TokenTimeResponseSchema = z
 
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
+export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 
 export function registerAuthPaths(registry: OpenAPIRegistry): void {
   registry.register('LoginRequest', LoginRequestSchema);
   registry.register('LoginResponse', LoginResponseSchema);
+  registry.register('RegisterRequest', RegisterRequestSchema);
   registry.register('TokenTimeResponse', TokenTimeResponseSchema);
 
   registry.registerPath({
@@ -73,6 +84,57 @@ export function registerAuthPaths(registry: OpenAPIRegistry): void {
       },
       429: {
         description: 'Demasiados intentos de inicio de sesión.',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: '/api/auth/registro',
+    operationId: 'Register',
+    tags: ['Auth'],
+    summary: 'Registrar nuevo usuario',
+    request: {
+      body: {
+        content: {
+          'application/json': {
+            schema: RegisterRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'Usuario registrado.',
+        content: {
+          'application/json': {
+            schema: UsuarioDtoSchema,
+          },
+        },
+      },
+      400: {
+        description: 'Datos de entrada inválidos.',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
+      409: {
+        description: 'Correo electrónico ya registrado.',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
+      429: {
+        description: 'Demasiados intentos de registro.',
         content: {
           'application/json': {
             schema: ErrorResponseSchema,

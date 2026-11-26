@@ -31,6 +31,7 @@ interface OpenApiDoc {
 const EXPECTED_SCHEMAS = [
   'LoginRequest',
   'LoginResponse',
+  'RegisterRequest',
   'TokenTimeResponse',
   'BitacoraDto',
   'RolDto',
@@ -51,6 +52,7 @@ const EXPECTED_SCHEMAS = [
 const EXPECTED_OPERATION_IDS = [
   // Auth
   'Login',
+  'Register',
   'GetTokenRemainingTime',
   // Bitácora
   'GetBitacora',
@@ -85,7 +87,7 @@ const EXPECTED_OPERATION_IDS = [
   'DeleteArchivo',
 ] as const;
 
-const PUBLIC_OPERATION_IDS = new Set(['Login', 'DownloadArchivo']);
+const PUBLIC_OPERATION_IDS = new Set(['Login', 'Register', 'DownloadArchivo']);
 
 describe('B008 OpenAPI 3.0.3 Registry, Full Route Wiring & Integration Suite', () => {
   const tempDirs: string[] = [];

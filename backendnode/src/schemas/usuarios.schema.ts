@@ -1,6 +1,6 @@
 import type { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
-import { ErrorResponseSchema, RoleNameSchema } from './common.schema';
+import { ErrorResponseSchema, RoleNameSchema, StrongPasswordSchema } from './common.schema';
 
 export const UsuarioEmailParamSchema = z.object({
   email: z.string().trim().email().max(255),
@@ -22,7 +22,7 @@ export const UsuarioListResponseSchema = z
 export const CreateUsuarioRequestSchema = z
   .object({
     email: z.string().trim().toLowerCase().email().max(255),
-    password: z.string().min(6).max(128),
+    password: StrongPasswordSchema,
     nombre: z.string().trim().min(1).max(255),
     rol: RoleNameSchema,
   })

@@ -258,7 +258,7 @@ describe('B005 Usuarios Service, Guards, Routes & OpenAPI', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           email: '  Nuevo@Dima.Local ',
-          password: 'password123',
+          password: 'Segura2026!Ab',
           nombre: 'Nuevo Usuario',
           rol: 'Usuario',
         });
@@ -272,7 +272,7 @@ describe('B005 Usuarios Service, Guards, Routes & OpenAPI', () => {
       });
       expect(res.body.rolid).toBeUndefined();
       expect(res.body.passwordhash).toBeUndefined();
-      expect(hashSpy).toHaveBeenCalledWith('password123', 10);
+      expect(hashSpy).toHaveBeenCalledWith('Segura2026!Ab', 10);
       expect(insertSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           email: 'nuevo@dima.local',
@@ -289,26 +289,37 @@ describe('B005 Usuarios Service, Guards, Routes & OpenAPI', () => {
       );
     });
 
-    it('rejects < 6 char password (400), invalid role (400), and duplicate email (409)', async () => {
+    it('rejects weak passwords (400), invalid role (400), and duplicate email (409)', async () => {
       const { app, adminToken } = createHarness();
 
-      const shortPassRes = await request(app)
-        .post('/api/usuarios')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({
-          email: 'short@dima.local',
-          password: '12345',
-          nombre: 'Short',
-          rol: 'Usuario',
-        });
-      expect(shortPassRes.status).toBe(400);
+      const weakPasswords = [
+        'Ab1!short',
+        'segura2026!ab',
+        'SEGURA2026!AB',
+        'SeguraPass!Ab',
+        'Segura2026Abc',
+      ];
+
+      for (const weakPassword of weakPasswords) {
+        const weakRes = await request(app)
+          .post('/api/usuarios')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            email: 'short@dima.local',
+            password: weakPassword,
+            nombre: 'Weak',
+            rol: 'Usuario',
+          });
+        expect(weakRes.status).toBe(400);
+        expect(Array.isArray(weakRes.body.detalles)).toBe(true);
+      }
 
       const badRoleRes = await request(app)
         .post('/api/usuarios')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           email: 'badrole@dima.local',
-          password: 'password123',
+          password: 'Segura2026!Ab',
           nombre: 'Bad Role',
           rol: 'SuperAdmin',
         });
@@ -319,7 +330,7 @@ describe('B005 Usuarios Service, Guards, Routes & OpenAPI', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           email: 'patito@uv.mx',
-          password: 'password123',
+          password: 'Segura2026!Ab',
           nombre: 'Dup',
           rol: 'Usuario',
         });
