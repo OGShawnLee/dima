@@ -1,0 +1,27 @@
+# Course PDFs & local SQL dumps
+*.pdf
+*.sql
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Node.js / Backend (backendnode/)
+node_modules/
+dist/
+coverage/
+npm-debug.log*
+backendnode/uploads/
+backendnode/log/
+backendnode/restclient/
+
+# .NET / Frontend (frontendnet/)
+frontendnet/bin/
+frontendnet/obj/
+.vs/
+*.user
+
+# OS & editor clutter
+.DS_Store
+Thumbs.db
