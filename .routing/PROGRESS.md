@@ -26,7 +26,10 @@
 - **`B001-project-scaffold`** (`implemented` — Track `Shared`, Worker: `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `03928b2` / `d6b7f4d`): Router-verified (`typecheck` 0 errors, `build` OK, `17/17` Vitest/Supertest tests pass, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`).
 - **`B002-database-schema-seed`** (`implemented` — Track `Shared`, Worker: warm `B001` thread on `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `d134f19`): Router-verified (`typecheck` 0 errors, `build` OK, `34/34` tests pass across `core.test.ts` + `db.test.ts`, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`). *(Warm worker retired after 2 tickets.)*
 - **`B003-schema-sql-and-setup-scripts`** (`implemented` — Track `Shared`, Worker: `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `c05101a`): Router-verified (`typecheck` 0 errors, `build` OK, `54/54` tests pass across `core` + `db` + `setup`, `.gitignore` allowlist verified, scope clean). Ready for Security Auditor review (`$security-audit`).
-- **`B004-auth-and-bitacora`** (`implemented` — Track `A`, Worker: `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `829ce2f`): Router-verified (`typecheck` 0 errors, `build` OK, `77/77` tests pass across all 5 test files, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`). *(Warm worker available for 2nd Track A ticket `B005`.)*
+- **`B004-auth-and-bitacora`** (`implemented` — Track `A`, Worker: `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `829ce2f`): Router-verified (`typecheck` 0 errors, `build` OK, `77/77` tests pass across all 5 test files, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`).
+- **`B005-users-and-roles`** (`implemented` — Track `A`, Worker: warm `B004` thread on `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `7878df3`): Router-verified (`typecheck` 0 errors, `build` OK, `91/91` tests pass across 7 test files, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`). *(Warm worker retired after 2 tickets.)*
+- **`B006-categorias-and-productos`** (`dispatched` — Track `B`, Worker: fresh `Gemini 4 Hydrogen (Medium)`): `/api/categorias` + `/api/productos` (`DEC-006`, `DEC-009`, `DEC-010`).
+- **`B007-archivos-hardened`** (`dispatched` — Track `C`, Worker: fresh `Gemini 4 Hydrogen (Medium)`): Hardened `upload.middleware` + `/api/archivos` (`DEC-007`, `DEC-010`).
 
 ---
 
@@ -111,7 +114,7 @@ Resolve and lock these into the backend Zod schemas & OpenAPI 3.0.3 spec before 
 2. **Ticket B002 — Database Layer & Seeding (`implemented`):** `drizzle.config.ts`, `src/db/index.ts`, `src/db/schema.ts`, `src/db/seed.ts` (prod-guarded), `tests/db.test.ts`.
 3. **Ticket B003 — `SCHEMA.sql` & Automated Least-Privilege Setup Scripts (`implemented`):** Pure-DDL `backendnode/db/SCHEMA.sql` (`DEC-012`), `scripts/setup-env.mjs`, `scripts/setup-db.mjs` (least-privilege MySQL user), `backendnode/README.md`, parity & security tests.
 4. **Ticket B004 — Auth, JWT, RBAC & Bitácora (`implemented`):** `jwttoken.service.ts`, `auth.middleware.ts` (`DEC-003` DB-checked refresh, `DEC-005` strict verify + `401`/`403`), `bitacora.middleware.ts`, `/api/auth` (`DEC-004` failed-login audit), `/api/bitacora`.
-5. **Ticket B005 — Users & Roles (`draft`):** `/api/usuarios` (backend `protegido` & self-edit/delete guards, password policy, duplicate email `409`), `/api/roles`.
-6. **Ticket B006 — Categories & Products (`draft`):** `/api/categorias` (`protegida` delete guard), `/api/productos` (safe `LIKE` search, FK validation, M:N category assignment/removal).
-7. **Ticket B007 — Hardened File Storage (`draft`):** `upload.middleware.ts` (size cap, UUID filenames, magic bytes), `/api/archivos` (disk & `LONGBLOB` modes, `nosniff`, safe unlink).
+5. **Ticket B005 — Users & Roles (`implemented`):** `/api/usuarios` (backend `protegido` & self-edit/delete guards, password policy, duplicate email `409`), `/api/roles`.
+6. **Ticket B006 — Categories & Products (`dispatched`):** `/api/categorias` (`protegida` delete guard), `/api/productos` (safe `LIKE` search, FK validation, M:N category assignment/removal).
+7. **Ticket B007 — Hardened File Storage (`dispatched`):** `upload.middleware.ts` (size cap, UUID filenames, magic bytes), `/api/archivos` (disk & `LONGBLOB` modes, `nosniff`, safe unlink).
 8. **Ticket B008 — OpenAPI 3.0.3 & Full Verification:** Complete `src/config/openapi.ts` registry (`/openapi.json`, `/swagger`, `/docs`), wire all routes in `app.ts`, end-to-end contract & security test suite.
