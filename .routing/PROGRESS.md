@@ -2,8 +2,8 @@
 
 ## Current Status
 
-- **Phase:** Phase 2 (`B001`–`B009`, `B011` `implemented` awaiting `$security-audit`; `B010` `dispatched` for `REQ-003`)
-- **Repository State:** `backendnode/` verified locally after `B009` + `B011` (`12` test files, `152/152` tests passing, `tsc --noEmit` 0 errors, `tsc` build clean, `0` `any` in `src/`).
+- **Phase:** Phase 2 Complete (`B001`–`B011` all `implemented` on `main`, fulfilling `REQ-001`–`REQ-007`) — Awaiting Push & Security Audits (`$security-audit`)
+- **Repository State:** Full `backendnode/` API + Orders + Production Deploy Templates verified on `main` (`13` test files, `172/172` tests passing, `tsc --noEmit` 0 errors, `tsc` build clean, `0` `any` in `src/`).
 - **Decision Recorded:** Backend (`backendnode`) is the source of truth; all 17 architectural/security decisions (`DEC-001`–`DEC-017`) logged in [DECISION.md](DECISION.md).
 
 ---
@@ -33,6 +33,7 @@
 - **`B008-openapi-and-integration`** (`implemented` — Track `C`, Worker: warm `B007` thread on `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `3c30852`): Router-verified (`typecheck` 0 errors, `build` OK, `132/132` tests pass across 11 test files, 0 `any`, OpenAPI 3.0.3 with 17 named schemas + 27 `operationId`s, `/swagger` & `/docs` 200 HTML). Ready for Security Auditor review (`$security-audit`). *(Warm worker retired after 2 tickets.)*
 - **`B009-self-registration-and-password-policy`** (`implemented` — Track `A`, Worker: `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `e7a1d86`): Router-verified (`typecheck` 0 errors, `build` OK, `137/137` tests pass across 11 test files, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`).
 - **`B011-prod-hardening-and-deploy-scripts`** (`implemented` — Track `Shared`, Worker: `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `419bdfb`): Router-verified on `main` (`typecheck` 0 errors, `build` OK, `152/152` tests pass across 12 test files, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`).
+- **`B010-orders-module`** (`implemented` — Track `B`, Worker: `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `2e499a7`): Router-verified (`typecheck` 0 errors, `build` OK, `172/172` tests pass across 13 test files, 0 `any`, 9-table `schema.ts` ↔ `SCHEMA.sql` parity, anti-IDOR `404` & server-authoritative pricing verified, scope clean). Ready for Security Auditor review (`$security-audit`).
 
 ---
 
@@ -122,5 +123,5 @@ Resolve and lock these into the backend Zod schemas & OpenAPI 3.0.3 spec before 
 7. **Ticket B007 — Hardened File Storage (`implemented`):** `upload.middleware.ts` (size cap, UUID filenames, magic bytes), `/api/archivos` (disk & `LONGBLOB` modes, `nosniff`, safe unlink).
 8. **Ticket B008 — OpenAPI 3.0.3 & Full Verification (`implemented`):** Complete `src/config/openapi.ts` registry (`/openapi.json`, `/swagger`, `/docs`), wire all routes in `app.ts`, end-to-end contract & security test suite (`132/132` passing).
 9. **Ticket B009 — Public Self-Registration & Strong Password Policy (`implemented`):** `REQ-001` (`POST /api/auth/registro`, rate-limited, server-forced `Usuario`, bitácora `usuario.registro`) + `REQ-002` (`StrongPasswordSchema` 12–128 chars + upper/lower/digit/symbol on `/api/usuarios` & `/api/auth/registro`).
-10. **Ticket B010 — Server-Authoritative Orders Module (`dispatched`):** `REQ-003` (`pedido` + `pedidodetalle` in `schema.ts` & `db/SCHEMA.sql`, `/api/pedidos` + `/api/pedidos/mios` + `/api/pedidos/:id`, server-side price recomputation, anti-IDOR `404`, OpenAPI + route wiring).
+10. **Ticket B010 — Server-Authoritative Orders Module (`implemented`):** `REQ-003` (`pedido` + `pedidodetalle` in `schema.ts` & `db/SCHEMA.sql`, `/api/pedidos` + `/api/pedidos/mios` + `/api/pedidos/:id`, server-side price recomputation, anti-IDOR `404`, OpenAPI + route wiring).
 11. **Ticket B011 — Production Hardening, Remote DB Setup & Deploy Templates (`implemented`):** `REQ-004` (`TRUST_PROXY` list + `ip:email` auth rate-limit key), `REQ-005` (`HOST` bind `127.0.0.1` in prod), `REQ-006` (`DB_APP_HOST` + `DB_SSL`), and `REQ-007` (`backendnode/deploy/` non-interactive Debian 12 + Ubuntu 24.04 systemd/nginx/backup/install scripts + lightweight `vagrant up db` dev guide).

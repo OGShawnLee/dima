@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Track | Services | Spec |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `B010` | `dispatched` | `Gemini 4 Hydrogen (Medium)` | `B` | `pedidos` (`pedido` + `pedidodetalle` schema & DDL + endpoints) | [spec.md](spec.md) |
+| `B010` | `implemented` | `Gemini 4 Hydrogen (Medium)` | `B` | `pedidos` (`pedido` + `pedidodetalle` schema & DDL + endpoints) | [spec.md](spec.md) |
 
 ## Security & Contract Items Addressed
 
