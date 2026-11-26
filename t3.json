@@ -1,0 +1,36 @@
+{
+  "$schema": "https://t3.codes/schema/t3.json",
+  "defaultThreadEnvMode": "worktree",
+  "worktreeSubmodules": "none",
+  "scripts": [
+    {
+      "name": "Setup worktree (restore frontend)",
+      "command": "cd \"${T3CODE_WORKTREE_PATH:-$T3CODE_PROJECT_ROOT}\" && if [ -f frontendnet/frontendnet.csproj ]; then dotnet restore frontendnet/frontendnet.csproj; else echo 'frontendnet not scaffolded yet (F001)'; fi",
+      "runOnWorktreeCreate": true,
+      "async": false
+    },
+    {
+      "name": "Frontend: build gate",
+      "command": "cd \"${T3CODE_WORKTREE_PATH:-$T3CODE_PROJECT_ROOT}\" && dotnet build frontendnet/frontendnet.csproj -c Release && ! grep -rn 'async void' frontendnet --include=*.cs"
+    },
+    {
+      "name": "Frontend: run (https://localhost:8443)",
+      "command": "cd \"${T3CODE_WORKTREE_PATH:-$T3CODE_PROJECT_ROOT}/frontendnet\" && dotnet run --launch-profile https",
+      "previewUrl": "https://localhost:8443",
+      "stopOnSettle": true
+    },
+    {
+      "name": "Backend: dev server (main checkout, :3000)",
+      "command": "cd \"$T3CODE_PROJECT_ROOT/backendnode\" && npm run dev",
+      "previewUrl": "http://localhost:3000/docs"
+    },
+    {
+      "name": "Backend: tests (audit evidence)",
+      "command": "cd \"${T3CODE_WORKTREE_PATH:-$T3CODE_PROJECT_ROOT}/backendnode\" && npm ci && npx tsc --noEmit && npx vitest run"
+    },
+    {
+      "name": "Audit: record HEAD sha",
+      "command": "cd \"${T3CODE_WORKTREE_PATH:-$T3CODE_PROJECT_ROOT}\" && git rev-parse --short HEAD"
+    }
+  ]
+}
