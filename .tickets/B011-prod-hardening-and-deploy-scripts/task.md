@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Track | Services | Spec |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `B011` | `dispatched` | `Gemini 4 Hydrogen (Medium)` | `Shared` | Production runtime (`env`, `app`, `index`, `ratelimit`, `bitacora`, `errorhandler`), `setup-db`, `backendnode/deploy/` | [spec.md](spec.md) |
+| `B011` | `implemented` | `Gemini 4 Hydrogen (Medium)` | `Shared` | Production runtime (`env`, `app`, `index`, `ratelimit`, `bitacora`, `errorhandler`), `setup-db`, `backendnode/deploy/` | [spec.md](spec.md) |
 
 ## Security & Contract Items Addressed
 
