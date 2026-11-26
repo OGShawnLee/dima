@@ -23,7 +23,8 @@
 
 ## Active Tickets
 
-- **`B001-project-scaffold`** (`implemented` — Track `Shared`, Worker: `Gemini 4 Hydrogen (Medium)`, Branch: `t3/9a78cbd9` @ `03928b2`): Router-verified (`typecheck` 0 errors, `build` OK, `17/17` Vitest/Supertest tests pass, 0 `any`, scope clean). Pending fast-forward merge to `main` and Security Auditor review (`$security-audit`).
+- **`B001-project-scaffold`** (`implemented` — Track `Shared`, Worker: `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `03928b2` / `d6b7f4d`): Router-verified (`typecheck` 0 errors, `build` OK, `17/17` Vitest/Supertest tests pass, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`).
+- **`B002-database-schema-seed`** (`implemented` — Track `Shared`, Worker: warm `B001` thread on `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `d134f19`): Router-verified (`typecheck` 0 errors, `build` OK, `34/34` tests pass across `core.test.ts` + `db.test.ts`, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`). *(Warm worker retired after 2 tickets.)*
 
 ---
 

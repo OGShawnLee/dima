@@ -92,7 +92,7 @@ Use the [ticket](../ticket/SKILL.md) skill to create `.tickets/B<NNN>-<slug>/` (
 - Check that no test, Zod schema, or security guard was weakened to make a ticket pass.
 - Review `changelog.md` for out-of-scope edits or surfaced decisions.
 - **If any check fails:** keep `dispatched` (or `changes-requested`) and return exact failure output to the worker. Do not fix backend code yourself.
-- **If all checks pass:** set `task.md` status to **`implemented`**, update [PROGRESS.md](../../../.routing/PROGRESS.md) (flagging it ready for Security Auditor), and if any API contract/endpoint changed for the frontend, append a dated entry to [FRONT-HANDOFF.md](../../../.routing/FRONT-HANDOFF.md).
+- **If all checks pass:** fast-forward merge the verified branch onto `main` (standing owner permission — never push to `origin` unless asked), set `task.md` status to **`implemented`**, update [PROGRESS.md](../../../.routing/PROGRESS.md) (flagging it ready for Security Auditor), commit the ticket/progress tracking update, and if any API contract/endpoint changed for the frontend, append a dated entry to [FRONT-HANDOFF.md](../../../.routing/FRONT-HANDOFF.md).
 
 ### 8. Process Security Audit (`AUDIT-HANDOFF.md`) → `changes-requested` or `completed`
 - Reconcile with remote (`git fetch origin`) and read new entries in [AUDIT-HANDOFF.md](../../../.routing/AUDIT-HANDOFF.md) and the ticket's `audit.md`.
