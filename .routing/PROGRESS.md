@@ -2,9 +2,9 @@
 
 ## Current Status
 
-- **Phase:** Bootstrap / Architecture & Security Alignment
-- **Repository State:** Spec documents present (`BACKEND-API-SPEC.md`, `FRONTEND-API-SPEC.md`, `STACK-REVIEW-COMMUNICATION.md`); `.routing/` initialized; no backend source code or git commits yet.
-- **Decision Recorded:** Backend (`backendnode`) is the source of truth for contract, validation, and security enforcement.
+- **Phase:** Implementation Complete (`B001`–`B008` `implemented` on `main`) — Awaiting Security Audits (`$security-audit`)
+- **Repository State:** Full `backendnode/` API wired and verified (`11` test files, `132/132` tests passing, `tsc --noEmit` 0 errors, `tsc` build clean, `0` `any` in `src/`); pushed to `origin/main`.
+- **Decision Recorded:** Backend (`backendnode`) is the source of truth; all 12 architectural/security improvements logged in [DECISION.md](DECISION.md).
 
 ---
 
@@ -29,7 +29,8 @@
 - **`B004-auth-and-bitacora`** (`implemented` — Track `A`, Worker: `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `829ce2f`): Router-verified (`typecheck` 0 errors, `build` OK, `77/77` tests pass across all 5 test files, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`).
 - **`B005-users-and-roles`** (`implemented` — Track `A`, Worker: warm `B004` thread on `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `7878df3`): Router-verified (`typecheck` 0 errors, `build` OK, `91/91` tests pass across 7 test files, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`). *(Warm worker retired after 2 tickets.)*
 - **`B006-categorias-and-productos`** (`implemented` — Track `B`, Worker: `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `3ce6987`): Router-verified (`typecheck` 0 errors, `build` OK, `112/112` tests pass across 9 test files, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`).
-- **`B007-archivos-hardened`** (`implemented` — Track `C`, Worker: `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `aec25aa`): Router-verified (`typecheck` 0 errors, `build` OK, `122/122` tests pass across 10 test files, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`). *(Warm worker available for 2nd Track C ticket `B008`.)*
+- **`B007-archivos-hardened`** (`implemented` — Track `C`, Worker: `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `aec25aa`): Router-verified (`typecheck` 0 errors, `build` OK, `122/122` tests pass across 10 test files, 0 `any`, scope clean). Ready for Security Auditor review (`$security-audit`).
+- **`B008-openapi-and-integration`** (`implemented` — Track `C`, Worker: warm `B007` thread on `Gemini 4 Hydrogen (Medium)`, Merged to `main` @ `3c30852`): Router-verified (`typecheck` 0 errors, `build` OK, `132/132` tests pass across 11 test files, 0 `any`, OpenAPI 3.0.3 with 17 named schemas + 27 `operationId`s, `/swagger` & `/docs` 200 HTML). Ready for Security Auditor review (`$security-audit`). *(Warm worker retired after 2 tickets.)*
 
 ---
 
@@ -117,4 +118,4 @@ Resolve and lock these into the backend Zod schemas & OpenAPI 3.0.3 spec before 
 5. **Ticket B005 — Users & Roles (`implemented`):** `/api/usuarios` (backend `protegido` & self-edit/delete guards, password policy, duplicate email `409`), `/api/roles`.
 6. **Ticket B006 — Categories & Products (`implemented`):** `/api/categorias` (`protegida` delete guard), `/api/productos` (safe `LIKE` search, FK validation, M:N category assignment/removal).
 7. **Ticket B007 — Hardened File Storage (`implemented`):** `upload.middleware.ts` (size cap, UUID filenames, magic bytes), `/api/archivos` (disk & `LONGBLOB` modes, `nosniff`, safe unlink).
-8. **Ticket B008 — OpenAPI 3.0.3 & Full Verification (`draft`):** Complete `src/config/openapi.ts` registry (`/openapi.json`, `/swagger`, `/docs`), wire all routes in `app.ts`, end-to-end contract & security test suite.
+8. **Ticket B008 — OpenAPI 3.0.3 & Full Verification (`implemented`):** Complete `src/config/openapi.ts` registry (`/openapi.json`, `/swagger`, `/docs`), wire all routes in `app.ts`, end-to-end contract & security test suite (`132/132` passing).

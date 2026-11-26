@@ -35,3 +35,11 @@
   - **DB-checked sliding refresh (`DEC-003`):** During the `< 5 min` refresh window, if a user was deleted or demoted in MySQL, the backend will reject with `401` (deleted → triggers `/Auth/Salir`) or `403` (role revoked) instead of refreshing stale claims.
   - **Failed-login audit rows (`DEC-004`):** `GET /api/bitacora` will now include `usuario.login.fallido` entries alongside `usuario.login` so admins can see failed login attempts in `/Bitacora`.
 - **References:** [DECISION.md](DECISION.md), [auth_service.md](services/auth_service.md)
+
+## 2026-11-25 — Complete Backend API & OpenAPI 3.0.3 Contract Live on `main` (`B008`)
+- **Summary:** All 8 backend implementation tickets (`B001`–`B008`) are implemented, router-verified (`132/132` tests passing, `0` TS errors, `0` `any`), and pushed to `origin/main`. All 7 services (27 operations across `/api/auth`, `/api/bitacora`, `/api/roles`, `/api/usuarios`, `/api/categorias`, `/api/productos`, `/api/archivos`) plus `/health`, `/openapi.json` (OpenAPI 3.0.3), `/swagger`, and `/docs` (Scalar) are wired and ready.
+- **Frontend Impact:**
+  - Start the backend locally (`cd backendnode && npm ci && npm run setup:env && npm run setup:db -- --seed && npm run dev`) to consume `http://localhost:3000/openapi.json` for Kiota/Refitter C# client generation or direct `HttpClient` integration.
+  - All 17 named DTO schemas and 27 PascalCase `operationId`s match `.routing/SERVICES.md` and `DEC-001`–`DEC-012`.
+  - Tickets `B001`–`B008` are currently in status `implemented` awaiting `$security-audit`; any audit-driven fixes will be logged here if they affect the contract.
+- **References:** [SERVICES.md](SERVICES.md), [DECISION.md](DECISION.md), [backendnode/README.md](../backendnode/README.md)
