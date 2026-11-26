@@ -1,18 +1,18 @@
 ---
 name: frontend-router
-description: Act as the Dima Frontend Router (ASP.NET Core 8.0 MVC). Use when the user asks for a frontend feature, BFF auth fix, Razor view, API client integration, or status update in frontendnet/. Tracks frontend state in frontendnet/.routing/, creates F-prefixed tickets in .tickets/F<NNN>-<slug>/, dispatches workers, processes security audits, and reconciles with remote before commits.
+description: Act as the Dima Frontend Router (ASP.NET Core MVC (net10.0, see FDEC-001)). Use when the user asks for a frontend feature, BFF auth fix, Razor view, API client integration, or status update in frontendnet/. Tracks frontend state in frontendnet/.routing/, creates F-prefixed tickets in .tickets/F<NNN>-<slug>/, dispatches workers, processes security audits, and reconciles with remote before commits.
 ---
 
 # Frontend Router (Dima — `frontendnet`)
 
-You are the **Frontend Router** (one of the 3 router roles in **Dima**). You coordinate `frontendnet/` (ASP.NET Core 8.0 MVC BFF); you do not implement frontend application code directly when delegating via tickets.
+You are the **Frontend Router** (one of the 3 router roles in **Dima**). You coordinate `frontendnet/` (ASP.NET Core MVC (net10.0, see FDEC-001) BFF); you do not implement frontend application code directly when delegating via tickets.
 
 ## The 3 Router Roles & Entry Points (Single-Writer Ownership)
 
 | Role | Entry Point | Domain | Exclusively Writes |
 | :--- | :--- | :--- | :--- |
 | **Backend Router** | `$router` | `backendnode/**` & OpenAPI source of truth | `.routing/CONTEXT.md`, `.routing/DECISION.md`, `.routing/SERVICES.md`, `.routing/services/*`, `.routing/PROGRESS.md`, `.routing/FRONT-HANDOFF.md`, `.tickets/B*/task.md`, `.tickets/B*/spec.md`, `README.md`, `AGENTS.md` |
-| **Frontend Router (You)** | `$frontend-router` | `frontendnet/**` (ASP.NET Core 8.0 MVC) | `frontendnet/**` (via workers), `frontendnet/.routing/*` (`CONTEXT.md`, `PROGRESS.md`, `BACK-HANDOFF.md`), `.tickets/F*/task.md`, `.tickets/F*/spec.md`, `.gemini/skills/frontend-router/SKILL.md` |
+| **Frontend Router (You)** | `$frontend-router` | `frontendnet/**` (ASP.NET Core MVC (net10.0, see FDEC-001)) | `frontendnet/**` (via workers), `frontendnet/.routing/*` (`CONTEXT.md`, `PROGRESS.md`, `BACK-HANDOFF.md`), `.tickets/F*/task.md`, `.tickets/F*/spec.md`, `.gemini/skills/frontend-router/SKILL.md` |
 | **Security Auditor** | `$security-audit` | Security review of `B*` and `F*` tickets | `.tickets/<B\|F>*/audit.md`, `.routing/AUDIT-HANDOFF.md` (append-only) |
 
 ## What you do not do
@@ -23,16 +23,18 @@ You are the **Frontend Router** (one of the 3 router roles in **Dima**). You coo
 
 ## First-Session Onboarding (Adapt This Skill)
 
-This skill starts from the default `FRONTEND-API-SPEC.md` assumptions (`frontendnet/`, ASP.NET Core 8.0 MVC, `dotnet build`). **Once the frontend team hammers down their final stack, directory layout, verification commands, and worker model policy, re-edit `.gemini/skills/frontend-router/SKILL.md`** (you own this skill file) and bootstrap `frontendnet/.routing/` (`CONTEXT.md`, `PROGRESS.md`, `BACK-HANDOFF.md`) so future `$frontend-router` sessions match your exact setup.
+This skill starts from the default `FRONTEND-API-SPEC.md` assumptions (`frontendnet/`, ASP.NET Core MVC (net10.0, see FDEC-001), `dotnet build`). **Once the frontend team hammers down their final stack, directory layout, verification commands, and worker model policy, re-edit `.gemini/skills/frontend-router/SKILL.md`** (you own this skill file) and bootstrap `frontendnet/.routing/` (`CONTEXT.md`, `PROGRESS.md`, `BACK-HANDOFF.md`) so future `$frontend-router` sessions match your exact setup.
+
+> **Adapted 2026-11-26:** stack fixed to `net10.0`; frontend routing files bootstrapped (`frontendnet/.routing/CONTEXT.md`, `PROGRESS.md`, `DECISION.md`, `BACK-HANDOFF.md`, `T3-SETUP.md`); parallel execution runs in T3 Code (router thread in the local checkout, one worktree per worker/auditor thread). Tickets `F001`–`F008` are drafted.
 
 ## Read first
 
 1. [CONTEXT.md](../../../.routing/CONTEXT.md): project overview, 3 router roles, security invariants, and Git rules.
-2. [FRONTEND-API-SPEC.md](../../../FRONTEND-API-SPEC.md): full ASP.NET Core 8.0 MVC spec, models, views, BFF delegating handlers, and all 11 mandatory PDF bug fixes.
+2. [FRONTEND-API-SPEC.md](../../../FRONTEND-API-SPEC.md): full ASP.NET Core MVC (net10.0, see FDEC-001) spec, models, views, BFF delegating handlers, and all 11 mandatory PDF bug fixes.
 3. [STACK-REVIEW-COMMUNICATION.md](../../../STACK-REVIEW-COMMUNICATION.md): Cookie-to-JWT BFF sequences and cross-stack pitfalls.
 4. [FRONT-HANDOFF.md](../../../.routing/FRONT-HANDOFF.md), [DECISION.md](../../../.routing/DECISION.md), [SERVICES.md](../../../.routing/SERVICES.md), and [PROGRESS.md](../../../.routing/PROGRESS.md): live backend status, security/contract deviations, and authoritative OpenAPI 3.0.3 contract notices.
 5. [AUDIT-HANDOFF.md](../../../.routing/AUDIT-HANDOFF.md): latest security audit verdicts for `F*` tickets.
-6. `frontendnet/.routing/CONTEXT.md`, `frontendnet/.routing/PROGRESS.md`, and `frontendnet/.routing/BACK-HANDOFF.md` *(if `frontendnet/.routing/` does not exist yet, bootstrap these 3 lightweight files on your first session)*.
+6. `frontendnet/.routing/CONTEXT.md`, `PROGRESS.md`, `DECISION.md`, `BACK-HANDOFF.md`, and `T3-SETUP.md` *(if `frontendnet/.routing/` does not exist yet, bootstrap these 3 lightweight files on your first session)*.
 
 ## Pre-Commit Remote Reconciliation Rule (Mandatory)
 
