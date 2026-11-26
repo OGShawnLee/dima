@@ -66,7 +66,7 @@ Use this exact structure:
 4. **Scope**
    - **May create or edit:** exact file paths (e.g., `backendnode/src/services/auth.service.ts`, `backendnode/src/routes/auth.routes.ts`).
    - **Must not touch:** exact files or folders (always include unrelated services, `frontendnet/**`, `.routing/**`, and `audit.md`).
-5. **Inputs:** links to exact files the worker must read first — **always** include [.routing/SERVICES.md](../../../.routing/SERVICES.md) and the exact `.routing/services/{name}_service.md` file(s) for this domain, plus [.routing/CONTEXT.md](../../../.routing/CONTEXT.md). *(On a revision pass, also include [audit.md](audit.md).)*
+5. **Inputs:** links to exact files the worker must read first — **always** include [.routing/SERVICES.md](../../../.routing/SERVICES.md) and the exact `.routing/services/{name}_service.md` file(s) for this domain, plus [.routing/CONTEXT.md](../../../.routing/CONTEXT.md) and relevant entries in [.routing/DECISION.md](../../../.routing/DECISION.md). *(On a revision pass, also include [audit.md](audit.md).)*
 6. **Task:** numbered imperative steps (`Create`, `Implement`, `Register`, `Write tests`, `Run`). One concrete action per step.
 7. **Verification:** one line pointing to [spec.md](spec.md).
 8. **Change log:** instruct the worker to write/update `changelog.md` in the ticket folder listing files touched, tests run, security checks verified, and any blockers (stop and log instead of guessing).

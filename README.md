@@ -11,6 +11,7 @@ Start here depending on your role or what you need:
 | Document | Purpose |
 | :--- | :--- |
 | [.routing/CONTEXT.md](.routing/CONTEXT.md) | Stack, security invariants, repo map, model policy, and verification gates |
+| [.routing/DECISION.md](.routing/DECISION.md) | Architecture & Security Decision Log (deliberate improvements and deviations from baseline specs) |
 | [.routing/SERVICES.md](.routing/SERVICES.md) | Backend service routing index (glossary, shared types, dependency layers, and links to `.routing/services/*_service.md`) |
 | [.routing/PROGRESS.md](.routing/PROGRESS.md) | Live backend status, active tickets, security review checklist, and roadmap (readable by everyone) |
 | [.routing/FRONT-HANDOFF.md](.routing/FRONT-HANDOFF.md) | Backend → Frontend contract updates and `/openapi.json` notices |
@@ -27,7 +28,7 @@ We are a 3-member team using a **Router + Worker + Security Auditor** workflow w
 
 | Role | Start a Session With | Recommended Model | Owns (Exclusively Writes) | Skill File |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. Backend Router** | **`$router`** | Strong reasoning model *(dispatches workers on **Hydrogen Medium**)* | `.routing/CONTEXT.md`, `.routing/SERVICES.md`, `.routing/services/*`, `.routing/PROGRESS.md`, `.routing/FRONT-HANDOFF.md`, `.tickets/B*/task.md` + `spec.md`, `README.md` *(workers write `backendnode/**` + `changelog.md`)* | [.gemini/skills/router/SKILL.md](.gemini/skills/router/SKILL.md) + [ticket/SKILL.md](.gemini/skills/ticket/SKILL.md) |
+| **1. Backend Router** | **`$router`** | Strong reasoning model *(dispatches workers on **Hydrogen Medium**)* | `.routing/CONTEXT.md`, `.routing/DECISION.md`, `.routing/SERVICES.md`, `.routing/services/*`, `.routing/PROGRESS.md`, `.routing/FRONT-HANDOFF.md`, `.tickets/B*/task.md` + `spec.md`, `README.md`, `AGENTS.md` *(workers write `backendnode/**` + `changelog.md`)* | [.gemini/skills/router/SKILL.md](.gemini/skills/router/SKILL.md) + [ticket/SKILL.md](.gemini/skills/ticket/SKILL.md) |
 | **2. Frontend Router** | **`$frontend-router`** | Strong reasoning model | `frontendnet/**`, `frontendnet/.routing/*` (`CONTEXT.md`, `PROGRESS.md`, `BACK-HANDOFF.md`), `.tickets/F*/task.md` + `spec.md` | [.gemini/skills/frontend-router/SKILL.md](.gemini/skills/frontend-router/SKILL.md) |
 | **3. Security Auditor** | **`$security-audit`** | **Gemini 4 Neon (Medium)**, **Claude Opus 5.5 (Medium/High)**, or **Sol 6.2** | `.tickets/<B\|F>*/audit.md`, `.routing/AUDIT-HANDOFF.md` (append-only) | [.gemini/skills/security-audit/SKILL.md](.gemini/skills/security-audit/SKILL.md) |
 

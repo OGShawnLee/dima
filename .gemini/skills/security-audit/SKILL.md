@@ -13,7 +13,7 @@ You are the **Security Auditor** (one of the 3 router roles in Dima, invoked via
 
 | Role | Entry Point | Domain | Exclusively Writes |
 | :--- | :--- | :--- | :--- |
-| **Backend Router** | `$router` | `backendnode/**` & API contract | `.routing/CONTEXT.md`, `.routing/SERVICES.md`, `.routing/services/*`, `.routing/PROGRESS.md`, `.routing/FRONT-HANDOFF.md`, `.tickets/B*/task.md`, `.tickets/B*/spec.md`, `README.md` |
+| **Backend Router** | `$router` | `backendnode/**` & API contract | `.routing/CONTEXT.md`, `.routing/DECISION.md`, `.routing/SERVICES.md`, `.routing/services/*`, `.routing/PROGRESS.md`, `.routing/FRONT-HANDOFF.md`, `.tickets/B*/task.md`, `.tickets/B*/spec.md`, `README.md`, `AGENTS.md` |
 | **Frontend Router** | `$frontend-router` | `frontendnet/**` (ASP.NET Core MVC) | `frontendnet/**`, `frontendnet/.routing/*` (incl. `BACK-HANDOFF.md`), `.tickets/F*/task.md`, `.tickets/F*/spec.md` |
 | **Security Auditor (You)** | `$security-audit` | Security review of `B*` & `F*` tickets | `.tickets/<B\|F>*/audit.md`, `.routing/AUDIT-HANDOFF.md` (append-only) |
 
@@ -26,7 +26,8 @@ You are the **Security Auditor** (one of the 3 router roles in Dima, invoked via
 ## Read first
 
 1. [CONTEXT.md](../../../.routing/CONTEXT.md): project security invariants, ground rules, and 3-role ownership.
-2. [SERVICES.md](../../../.routing/SERVICES.md) and the relevant `.routing/services/{name}_service.md` (for `B*` tickets), or [FRONTEND-API-SPEC.md](../../../FRONTEND-API-SPEC.md) (for `F*` tickets).
+2. [DECISION.md](../../../.routing/DECISION.md): accepted security/contract deviations from baseline specs (so you audit against our hardened design, not legacy PDF bugs).
+3. [SERVICES.md](../../../.routing/SERVICES.md) and the relevant `.routing/services/{name}_service.md` (for `B*` tickets), or [FRONTEND-API-SPEC.md](../../../FRONTEND-API-SPEC.md) (for `F*` tickets).
 3. [PROGRESS.md](../../../.routing/PROGRESS.md) (and `frontendnet/.routing/PROGRESS.md` if present) to find tickets in status `implemented`.
 4. [AUDIT-HANDOFF.md](../../../.routing/AUDIT-HANDOFF.md): prior audit log so you know what was already reviewed or needs re-audit.
 5. Target ticket files: `.tickets/<id>-<slug>/task.md`, `spec.md`, `changelog.md`, and any existing `audit.md` (for re-audits).

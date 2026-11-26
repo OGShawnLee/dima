@@ -27,4 +27,11 @@
   - Valid JWT with wrong role returns `403 Forbidden` (reserving `401 Unauthorized` for missing/invalid/expired tokens so valid users aren't auto-logged out).
   - `GET /api/auth/tiempo` explicitly returns `text/plain; charset=utf-8`.
   - Backend enforces `<= 100 KB` + JPEG magic-byte validation on `/api/archivos`, plus backend guards preventing `protegido` edits and admin self-edit/self-delete on `/api/usuarios`.
-- **References:** [SERVICES.md](SERVICES.md), [PROGRESS.md](PROGRESS.md)
+- **References:** [SERVICES.md](SERVICES.md), [PROGRESS.md](PROGRESS.md), [DECISION.md](DECISION.md)
+
+## 2026-11-25 — Security Decisions Logged (`DEC-002`, `DEC-003`, `DEC-004`)
+- **Summary:** Created [.routing/DECISION.md](DECISION.md) to track all intentional security and contract improvements over the original course specs.
+- **Frontend Impact:**
+  - **DB-checked sliding refresh (`DEC-003`):** During the `< 5 min` refresh window, if a user was deleted or demoted in MySQL, the backend will reject with `401` (deleted → triggers `/Auth/Salir`) or `403` (role revoked) instead of refreshing stale claims.
+  - **Failed-login audit rows (`DEC-004`):** `GET /api/bitacora` will now include `usuario.login.fallido` entries alongside `usuario.login` so admins can see failed login attempts in `/Bitacora`.
+- **References:** [DECISION.md](DECISION.md), [auth_service.md](services/auth_service.md)

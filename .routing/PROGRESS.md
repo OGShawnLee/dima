@@ -17,6 +17,7 @@
 - Created service routing index ([SERVICES.md](SERVICES.md)) and 7 minimal per-domain service specs in `.routing/services/` (`auth`, `bitacora`, `roles`, `usuarios`, `categorias`, `productos`, `archivos`) with SQL entities, Zod mappings, endpoints, security rules, and TypeScript interfaces.
 - Added plain-language glossary and Shared Types provenance notes to [SERVICES.md](SERVICES.md); adapted `.gemini/skills/router/SKILL.md` and `.gemini/skills/ticket/SKILL.md` for Dima (`B`-prefix backend tickets, `F`-prefix reserved for frontend) and removed Pino's `site-router`.
 - Added dedicated Security Auditor skill ([security-audit/SKILL.md](../.gemini/skills/security-audit/SKILL.md), recommended models: Neon Medium, Opus 5.5 Medium/High, Sol 6.2), Frontend Router skill ([frontend-router/SKILL.md](../.gemini/skills/frontend-router/SKILL.md)), updated ticket lifecycle to 5 states (`draft → dispatched → implemented → changes-requested → completed`), added single-writer outboxes ([AUDIT-HANDOFF.md](AUDIT-HANDOFF.md), [FRONT-HANDOFF.md](FRONT-HANDOFF.md)), and documented all 3 `$skill` entry points (`$router`, `$frontend-router`, `$security-audit`) + pre-commit remote reconciliation across `CONTEXT.md`, skills, and root [README.md](../README.md).
+- Created [DECISION.md](DECISION.md) logging all 11 accepted architectural and security deviations (`DEC-001`–`DEC-011`), including local MySQL schema-first Drizzle (`DEC-002`), DB-checked sliding JWT refresh (`DEC-003`), and failed-login auditing `usuario.login.fallido` (`DEC-004`).
 
 ---
 
@@ -33,7 +34,7 @@ _None yet._
 - [x] **Ingest original implementation guide PDF:** Reviewed all 70 pages (including code screenshots) of `PRAC - Backend (Node.js).pdf`; extracted exact contract quirks, seed data structure, and legacy security/runtime defects to eliminate in `backendnode`.
 - [x] **Adapt `.gemini/skills/` for Dima:** Rewrote `router/SKILL.md` and `ticket/SKILL.md` for `backendnode` (`B<NNN>` backend prefix, `F<NNN>` reserved for frontend, routed via `.routing/SERVICES.md`) and removed Pino's unused `site-router`.
 - [x] **Confirm Git tracking for `.routing/` & `.tickets/`:** Both `.routing/` and `.tickets/` are committed to Git with single-writer ownership so all 3 teammates stay in sync.
-- [ ] **Confirm DB provisioning setup:** Decide whether to provide Drizzle migrations + `docker-compose.yml` for local MySQL 8.0 (`mercadolibrenode`) or assume an external local MySQL instance.
+- [x] **Confirm DB provisioning setup (`DEC-002`):** Local MySQL 8.0 (`mercadolibrenode`) using a **schema-first** Drizzle strategy (`src/db/schema.ts` → `drizzle-kit` migrations/push + prod-guarded `seed.ts`).
 - [ ] **Optional — Least-privilege DB user:** Per PDF p. 9 step 15–16, document/configure a runtime DB user with `SELECT, INSERT, UPDATE, DELETE` only (separate from schema-migration privileges).
 
 ---
@@ -53,7 +54,7 @@ All items below must be explicitly resolved in tickets and covered by automated 
 - [ ] **Strict `jwt.verify` options:** Explicitly pass `{ algorithms: ['HS256'], issuer: 'ServidorFeiJWT', audience: 'ClientesFeiJWT' }` instead of bare `jwt.verify(token, env.JWT_SECRET)`.
 - [ ] **HTTP `401` vs `403` separation:** Return `401 Unauthorized` for missing/invalid/expired JWTs and `403 Forbidden` when the token is valid but the role is not in `allowedRoles`.
 - [ ] **Login timing side-channel protection:** Keep identical `401` error message (`Usuario o contraseña incorrectos.`) and perform a dummy `bcrypt.compare` when email is not found to reduce user-enumeration timing leaks.
-- [ ] **Token freshness on sliding refresh (Decision Needed):** Decide whether sliding token renewal (<5m remaining) re-queries the DB to confirm the user still exists and retains their role, or remains purely stateless.
+- [ ] **DB-checked sliding refresh (`DEC-003`):** During the `< 5m` sliding refresh window, re-query `usuario` + `rol` in MySQL (reject `401` if deleted, `403` if role lost access, otherwise sign refreshed token with current DB role).
 
 #### HTTP Pipeline & Abuse Controls (`index.ts`)
 - [ ] **Security headers (`helmet`):** Register `helmet()` and disable `X-Powered-By`.
@@ -97,7 +98,7 @@ Resolve and lock these into the backend Zod schemas & OpenAPI 3.0.3 spec before 
   - Duplicate `(categoriaid, productoid)` on `POST /api/productos/:id/categoria` → `409 Conflict` or idempotent `204`.
   - Non-existent `archivoid` FK on `POST`/`PUT /api/productos` → `400`/`404` instead of `500`.
 - [ ] **`GET /api/auth/tiempo` OpenAPI content type:** Register `200` response explicitly as `text/plain` (not `application/json`).
-- [ ] **Failed-login audit logging (Decision Needed):** Decide whether failed `POST /api/auth` attempts should be recorded in `bitacora` (e.g., `usuario.login.fallido`) for security auditing.
+- [ ] **Failed-login audit logging (`DEC-004`):** Record `usuario.login.fallido` in `bitacora` (attempted email + IP, never password) on invalid `POST /api/auth` credentials, protected behind rate limiting.
 
 ---
 

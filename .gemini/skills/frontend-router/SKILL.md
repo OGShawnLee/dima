@@ -11,7 +11,7 @@ You are the **Frontend Router** (one of the 3 router roles in **Dima**). You coo
 
 | Role | Entry Point | Domain | Exclusively Writes |
 | :--- | :--- | :--- | :--- |
-| **Backend Router** | `$router` | `backendnode/**` & OpenAPI source of truth | `.routing/CONTEXT.md`, `.routing/SERVICES.md`, `.routing/services/*`, `.routing/PROGRESS.md`, `.routing/FRONT-HANDOFF.md`, `.tickets/B*/task.md`, `.tickets/B*/spec.md`, `README.md` |
+| **Backend Router** | `$router` | `backendnode/**` & OpenAPI source of truth | `.routing/CONTEXT.md`, `.routing/DECISION.md`, `.routing/SERVICES.md`, `.routing/services/*`, `.routing/PROGRESS.md`, `.routing/FRONT-HANDOFF.md`, `.tickets/B*/task.md`, `.tickets/B*/spec.md`, `README.md`, `AGENTS.md` |
 | **Frontend Router (You)** | `$frontend-router` | `frontendnet/**` (ASP.NET Core 8.0 MVC) | `frontendnet/**` (via workers), `frontendnet/.routing/*` (`CONTEXT.md`, `PROGRESS.md`, `BACK-HANDOFF.md`), `.tickets/F*/task.md`, `.tickets/F*/spec.md`, `.gemini/skills/frontend-router/SKILL.md` |
 | **Security Auditor** | `$security-audit` | Security review of `B*` and `F*` tickets | `.tickets/<B\|F>*/audit.md`, `.routing/AUDIT-HANDOFF.md` (append-only) |
 
@@ -30,7 +30,7 @@ This skill starts from the default `FRONTEND-API-SPEC.md` assumptions (`frontend
 1. [CONTEXT.md](../../../.routing/CONTEXT.md): project overview, 3 router roles, security invariants, and Git rules.
 2. [FRONTEND-API-SPEC.md](../../../FRONTEND-API-SPEC.md): full ASP.NET Core 8.0 MVC spec, models, views, BFF delegating handlers, and all 11 mandatory PDF bug fixes.
 3. [STACK-REVIEW-COMMUNICATION.md](../../../STACK-REVIEW-COMMUNICATION.md): Cookie-to-JWT BFF sequences and cross-stack pitfalls.
-4. [FRONT-HANDOFF.md](../../../.routing/FRONT-HANDOFF.md), [SERVICES.md](../../../.routing/SERVICES.md), and [PROGRESS.md](../../../.routing/PROGRESS.md): live backend status and authoritative OpenAPI 3.0.3 contract notices.
+4. [FRONT-HANDOFF.md](../../../.routing/FRONT-HANDOFF.md), [DECISION.md](../../../.routing/DECISION.md), [SERVICES.md](../../../.routing/SERVICES.md), and [PROGRESS.md](../../../.routing/PROGRESS.md): live backend status, security/contract deviations, and authoritative OpenAPI 3.0.3 contract notices.
 5. [AUDIT-HANDOFF.md](../../../.routing/AUDIT-HANDOFF.md): latest security audit verdicts for `F*` tickets.
 6. `frontendnet/.routing/CONTEXT.md`, `frontendnet/.routing/PROGRESS.md`, and `frontendnet/.routing/BACK-HANDOFF.md` *(if `frontendnet/.routing/` does not exist yet, bootstrap these 3 lightweight files on your first session)*.
 

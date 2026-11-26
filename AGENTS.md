@@ -11,6 +11,6 @@ Read [README.md](README.md) and [.routing/CONTEXT.md](.routing/CONTEXT.md) befor
 ## Non-Negotiable Rules
 
 1. **Respect single-writer file ownership** defined in [.routing/CONTEXT.md](.routing/CONTEXT.md) so teammates never hit Git merge conflicts.
-2. **Backend is the source of truth** for the API contract ([.routing/SERVICES.md](.routing/SERVICES.md)).
+2. **Backend is the source of truth** for the API contract ([.routing/SERVICES.md](.routing/SERVICES.md)); all deliberate security and contract deviations from the baseline specs are logged in [.routing/DECISION.md](.routing/DECISION.md).
 3. **Reconcile with remote** (`git fetch origin`) before any commit, merge, or push.
 4. **Conventional Commits only** (English, with a brief body overview of what changed).

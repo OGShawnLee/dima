@@ -54,23 +54,26 @@ export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 
 | Method | Path | `operationId` | Roles | Request | Response | Audit Action |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth` | `Login` | Public | `LoginRequest` JSON | `200` `LoginResponse` \| `400` Validation \| `401` `{ mensaje: 'Usuario o contraseña incorrectos.' }` \| `429` Rate limit | `usuario.login` (`email`) |
+| `POST` | `/api/auth` | `Login` | Public | `LoginRequest` JSON | `200` `LoginResponse` \| `400` Validation \| `401` `{ mensaje: 'Usuario o contraseña incorrectos.' }` \| `429` Rate limit | `usuario.login` (`email`) on success; `usuario.login.fallido` (`email`) on `401` ([DEC-004](../DECISION.md#dec-004--failed-login-auditing-in-bitacora-2026-11-25)) |
 | `GET` | `/api/auth/tiempo` | `GetTokenRemainingTime` | `Usuario`, `Administrador` | `Authorization: Bearer <jwt>` | `200` `text/plain` (`"00:MM:SS"`) \| `401` Unauthorized \| `404` Unavailable | None |
 
 ### Security & Business Rules
-1. **Rate limiting:** Apply strict `express-rate-limit` on `POST /api/auth`.
-2. **Timing protection:** If `email` is not found, perform a dummy `bcrypt.compare` before returning `401` with the exact same message (`Usuario o contraseña incorrectos.`).
+1. **Rate limiting:** Apply strict `express-rate-limit` on `POST /api/auth` (runs before failed-login auditing so attackers cannot flood `bitacora`).
+2. **Timing protection & failed-login audit (`DEC-004`):** If `email` is not found, perform a dummy `bcrypt.compare`; on either unknown email or wrong password, log `await req.bitacora('usuario.login.fallido', email)` (never log the password!) and return `401` with `{ mensaje: 'Usuario o contraseña incorrectos.' }`.
 3. **JWT claims & signing (`HS256`, `expiresIn: '20m'`):**
    - `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name`: `email`
    - `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`: `nombre`
    - `http://schemas.microsoft.com/ws/2008/06/identity/claims/role`: `rol`
    - `iss`: `"ServidorFeiJWT"`, `aud`: `"ClientesFeiJWT"`
-4. **JWT verification (`authorize(...allowedRoles)`):**
+4. **JWT verification & DB-checked sliding refresh (`authorize(...allowedRoles)`, `DEC-003` & `DEC-005`):**
    - Guard missing/non-Bearer header → `401` (`"Acceso denegado"`).
    - Pin `jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'], issuer: 'ServidorFeiJWT', audience: 'ClientesFeiJWT' })`.
    - Valid token with role not in `allowedRoles` → `403` (`"Acceso denegado"`).
-   - If remaining time `< 5` minutes, issue fresh 20m token in `Set-Authorization` header (exposed via CORS).
-5. **Plain-text response:** `GET /api/auth/tiempo` sets `Content-Type: text/plain; charset=utf-8` (and returns immediately on `404` to avoid double-send).
+   - If remaining time `< 5` minutes, **re-query `usuario` joined with `rol` in MySQL**:
+     - User deleted → reject with `401` (do not refresh).
+     - Current DB role not in `allowedRoles` → reject with `403` (do not refresh).
+     - Otherwise update `req.decodedToken` with current DB claims and issue a fresh 20m token in `Set-Authorization` (exposed via CORS).
+5. **Plain-text response (`DEC-010`):** `GET /api/auth/tiempo` sets `Content-Type: text/plain; charset=utf-8` (and returns immediately on `404` to avoid double-send).
 
 ---
 

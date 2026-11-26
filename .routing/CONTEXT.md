@@ -16,7 +16,7 @@ To prevent GitHub merge conflicts across 3 teammates working concurrently, every
 
 | Role | Entry Point | Member Focus | Skill | Exclusively Writes | Reads From Others |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Backend Router** | `$router` | Coordinates `backendnode/**`, schema, OpenAPI contract, and `B`-tickets | [router](../.gemini/skills/router/SKILL.md) | `.routing/CONTEXT.md`, `.routing/SERVICES.md`, `.routing/services/*`, `.routing/PROGRESS.md`, `.routing/FRONT-HANDOFF.md`, `.tickets/B*/task.md`, `.tickets/B*/spec.md`, `README.md` | `.routing/AUDIT-HANDOFF.md`, `.tickets/B*/audit.md`, `.tickets/B*/changelog.md`, `frontendnet/.routing/BACK-HANDOFF.md` |
+| **Backend Router** | `$router` | Coordinates `backendnode/**`, schema, OpenAPI contract, and `B`-tickets | [router](../.gemini/skills/router/SKILL.md) | `.routing/CONTEXT.md`, `.routing/SERVICES.md`, `.routing/services/*`, `.routing/PROGRESS.md`, `.routing/DECISION.md`, `.routing/FRONT-HANDOFF.md`, `.tickets/B*/task.md`, `.tickets/B*/spec.md`, `README.md`, `AGENTS.md` | `.routing/AUDIT-HANDOFF.md`, `.tickets/B*/audit.md`, `.tickets/B*/changelog.md`, `frontendnet/.routing/BACK-HANDOFF.md` |
 | **Frontend Router** | `$frontend-router` | Coordinates `frontendnet/**` (ASP.NET Core MVC) and `F`-tickets | [frontend-router](../.gemini/skills/frontend-router/SKILL.md) | `frontendnet/**`, `frontendnet/.routing/*` (`CONTEXT.md`, `PROGRESS.md`, `BACK-HANDOFF.md`), `.tickets/F*/task.md`, `.tickets/F*/spec.md` | `.routing/PROGRESS.md`, `.routing/SERVICES.md`, `.routing/FRONT-HANDOFF.md`, `.routing/AUDIT-HANDOFF.md`, `.tickets/F*/audit.md` |
 | **Security Auditor** | `$security-audit` | Audits implemented `B*` and `F*` tickets for vulnerabilities | [security-audit](../.gemini/skills/security-audit/SKILL.md) | `.tickets/<B\|F>*/audit.md`, `.routing/AUDIT-HANDOFF.md` (append-only) | `backendnode/**`, `frontendnet/**`, `.routing/*`, `frontendnet/.routing/*`, `.tickets/<B\|F>*/task.md`, `spec.md`, `changelog.md` |
 
@@ -52,6 +52,7 @@ To prevent GitHub merge conflicts across 3 teammates working concurrently, every
 | [FRONTEND-API-SPEC.md](../FRONTEND-API-SPEC.md) | Reference consumer contract (`frontendnet` ASP.NET Core 8.0 MVC) |
 | [STACK-REVIEW-COMMUNICATION.md](../STACK-REVIEW-COMMUNICATION.md) | Stack evaluation, cross-stack risks, and runtime sequence diagrams |
 | [.routing/SERVICES.md](SERVICES.md) | Service routing index mapping each domain (`services/{name}_service.md`) to SQL, Zod, endpoints, and TS interfaces |
+| [.routing/DECISION.md](DECISION.md) | Architecture & Security Decision Log recording every deliberate deviation/improvement over the baseline specs |
 | [.routing/PROGRESS.md](PROGRESS.md) | Tracker for completed work, active tickets, pending security/contract items, and roadmap |
 | [.routing/FRONT-HANDOFF.md](FRONT-HANDOFF.md) | One-way outbox from Backend → Frontend for contract and OpenAPI updates |
 | [.routing/AUDIT-HANDOFF.md](AUDIT-HANDOFF.md) | One-way outbox from Security Auditor → Backend & Frontend with audit verdicts |
@@ -69,6 +70,7 @@ dima/
 │   └── ticket/SKILL.md          # Backend B-ticket creation & lifecycle skill ($ticket)
 ├── .routing/                    # Backend-owned routing + Auditor outbox (COMMITTED)
 │   ├── CONTEXT.md               # This file: roles, stack, security invariants, gates
+│   ├── DECISION.md              # Architecture & Security Decision Log (deviations from spec)
 │   ├── PROGRESS.md              # Live backend status & pending items
 │   ├── SERVICES.md              # Service routing index + glossary + shared types
 │   ├── FRONT-HANDOFF.md         # Outbox: Backend -> Frontend (Backend-only write)
