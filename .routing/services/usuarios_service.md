@@ -50,7 +50,7 @@ export const UsuarioDtoSchema = z.object({
 
 export const CreateUsuarioRequestSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(255),
-  password: z.string().min(6).max(128),
+  password: StrongPasswordSchema, // min 12, max 128, upper+lower+digit+symbol (DEC-014)
   nombre: z.string().trim().min(1).max(255),
   rol: RoleNameSchema,
 }).openapi('CreateUsuarioRequest');

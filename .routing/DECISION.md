@@ -125,3 +125,47 @@
   - Provide cross-platform Node scripts: `npm run setup:env` (`scripts/setup-env.mjs`, generates `.env` with a fresh 70-char hex `JWT_SECRET` without overwriting existing `.env`) and `npm run setup:db` (`scripts/setup-db.mjs`, prompts for masked MySQL `root` password, applies `SCHEMA.sql`, strictly regex-validates `DB_USER`/`DB_DATABASE`, rejects `root` as app user, and grants least-privilege `SELECT, INSERT, UPDATE, DELETE` only).
 - **Rationale:** Zero hardcoded secrets in Git, eliminates weak/copied PDF secrets, enforces least-privilege MySQL runtime accounts (**OWASP / PDF p. 9**), and avoids Windows PowerShell `ExecutionPolicy` blocks across all 3 teammates.
 - **Impact:** Teammates run `npm run setup:env` and `npm run setup:db`; Vitest enforces `SCHEMA.sql` ↔ `src/db/schema.ts` parity and bans credential statements in `SCHEMA.sql`.
+
+## DEC-013 — Public Self-Registration Endpoint (`2026-11-26`)
+- **Status:** Accepted *(responds to `BACK-HANDOFF` `REQ-001`)*
+- **Baseline Spec / PDF:** Only `POST /api/usuarios` (`Administrador` only) existed; customer self-registration was a placeholder stub.
+- **Decision:** Add anonymous `POST /api/auth/registro` (`operationId: Register`) behind `createAuthRateLimiter` accepting `{ email, nombre, password }`. Role is **hardcoded server-side** to `'Usuario'` and `protegido: false` (strict Zod DTO strips any `rol`/`protegido` fields). Returns `201 UsuarioDto` (`{ id, email, nombre, rol: 'Usuario' }`), `400` on validation failure, `409` on duplicate email, and logs `usuario.registro` (`email`) to `bitacora`.
+- **Rationale:** Satisfies the required customer registration module while preventing privilege escalation via mass assignment (**OWASP API3 / CWE-915**) and automated account-creation spam (**OWASP A07**).
+- **Impact:** Unblocks frontend `F007`; exposed in OpenAPI 3.0.3 as a public endpoint.
+
+## DEC-014 — Strong Password Policy (12+ Chars + Complexity) (`2026-11-26`)
+- **Status:** Accepted *(responds to `BACK-HANDOFF` `REQ-002`)*
+- **Baseline Spec / PDF:** Frontend enforced `[MinLength(6)]`; backend previously enforced `min(6).max(128)`.
+- **Decision:** Introduce shared `StrongPasswordSchema` in `src/schemas/common.schema.ts` requiring **12–128 characters** with at least **1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol**. Apply it to both `POST /api/usuarios` and `POST /api/auth/registro` (keep `POST /api/auth` login `min(1).max(128)` so legacy seeded accounts `gvera@uv.mx`/`patito@uv.mx` continue working in dev/test; document seeded `'patito'` as dev/test fixture only).
+- **Rationale:** Meets course rubric for strong password enforcement (**OWASP ASVS V2.1 / CWE-521**) with backend as single source of truth.
+- **Impact:** `POST /api/usuarios` and `POST /api/auth/registro` reject weak passwords with `400` and descriptive `detalles`; frontend mirrors the rule in `PasswordPolicyAttribute`.
+
+## DEC-015 — Server-Authoritative Orders Module (`/api/pedidos`) (`2026-11-26`)
+- **Status:** Accepted *(responds to `BACK-HANDOFF` `REQ-003` & `FDEC-004`)*
+- **Baseline Spec / PDF:** Shopping cart and admin orders were unimplemented stubs.
+- **Decision:** Keep the active cart in the BFF session (`FDEC-004`) and add `pedido` + `pedidodetalle` tables (in `db/SCHEMA.sql` and `src/db/schema.ts`) plus 4 endpoints under `/api/pedidos`:
+  - `POST /api/pedidos` (`Usuario`): accepts `{ items: [{ productoId, cantidad (1..99) }] }` (1..50 items), fetches authoritative `producto.precio` and `producto.titulo` from MySQL inside a transaction, rejects missing product IDs with `400`, snapshots `titulo` & `preciounitario` in `pedidodetalle`, persists computed `total`, logs `pedido.crear`, returns `201 { pedidoId, total, fecha, estado }`.
+  - `GET /api/pedidos/mios` (`Usuario`): returns caller's own orders ordered by `id DESC`.
+  - `GET /api/pedidos` (`Administrador`): returns all orders with customer email & name ordered by `id DESC`.
+  - `GET /api/pedidos/:id` (`Usuario`, `Administrador`): returns order + snapshot line items; non-owner `Usuario` receives **`404`** (anti-IDOR enumeration).
+- **Rationale:** Prevents client-side price tampering (**OWASP API6 / CWE-602**) and broken object-level authorization (**OWASP API1 / IDOR**); snapshotting title/price preserves historical accuracy even if a product changes or is deleted (`pedidodetalle.productoid ON DELETE SET NULL`).
+- **Impact:** Unblocks frontend `F007` checkout and admin orders view; documented in [.routing/services/pedidos_service.md](services/pedidos_service.md).
+
+## DEC-016 — Trusted Proxy List, Composite Login Rate-Limit Key & Loopback Bind (`2026-11-26`)
+- **Status:** Accepted *(responds to `BACK-HANDOFF` `REQ-004` & `REQ-005`, `FDEC-006`)*
+- **Baseline Spec / PDF:** `TRUST_PROXY` was boolean-only; login rate limiter keyed solely by IP; `index.ts` bound `app.listen(SERVER_PORT)` on `0.0.0.0`.
+- **Decision:**
+  - Upgrade `TRUST_PROXY` env parsing to accept `'false'`, `'true'`, a non-negative hop count, or a comma-separated Express trust list (e.g., `'loopback,10.10.10.10'`) so `req.ip` resolves the browser IP from `X-Forwarded-For` **only** when arriving via trusted `api` nginx + `web` BFF hops.
+  - Use `req.ip` consistently in `bitacora`, `errorHandler`, and `createAuthRateLimiter`, and key the auth rate limiter by **`${req.ip}:${normalizedEmail}`** (falling back to `req.ip` when email is absent) so one user's typos behind a shared NAT/proxy cannot lock out other users while still stopping per-account brute force.
+  - Add `HOST` env var (default `'127.0.0.1'` when `NODE_ENV === 'production'`, `'0.0.0.0'` or `'localhost'` configurable in dev) and call `app.listen(env.SERVER_PORT, env.HOST)`.
+- **Rationale:** Prevents login DoS behind the BFF, fixes audit trail IP accuracy (**OWASP A09**), and closes port `3000` to external interfaces in production (**OWASP A05** / rubric Test 7).
+- **Impact:** Production `.env` on `api` sets `HOST=127.0.0.1` and `TRUST_PROXY=loopback,10.10.10.10`.
+
+## DEC-017 — Remote DB Host & Production Deployment Templates (`2026-11-26`)
+- **Status:** Accepted *(responds to `BACK-HANDOFF` `REQ-006` & `REQ-007`)*
+- **Baseline Spec / PDF:** `setup-db.mjs` only permitted `localhost`/`127.0.0.1`; no `api`/`db` deployment unit files existed.
+- **Decision:**
+  - Extend `scripts/setup-db.mjs` with validated `DB_APP_HOST` (supporting `localhost`, `127.0.0.1`, or private IPv4 like `10.10.10.20`, still blocking `root` and granting DML-only `SELECT, INSERT, UPDATE, DELETE`) and optional `DB_SSL` (`'true'|'false'`, optional `DB_SSL_CA` path) in `env.ts` + `src/db/index.ts`.
+  - Add hardened deployment templates under `backendnode/deploy/` (`backendnode.service`, `nginx-api.conf`, `install-api.sh`, `install-db.sh`, `backup-db.sh`, `backup-db.timer`) matching `frontendnet/deploy/DEPLOY-PLAN.md` Phases 2–3.
+- **Rationale:** Supports 3-server production topology (`web` → `api` → `db`) with least-privilege remote DB access, systemd sandboxing, TLS on 443, ufw firewalling, and automated nightly `mysqldump` backups.
+- **Impact:** Ready for Friday 3-server deployment (`REQ-007`); local dev workflow remains unchanged.

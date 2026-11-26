@@ -55,6 +55,7 @@ export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 | Method | Path | `operationId` | Roles | Request | Response | Audit Action |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/api/auth` | `Login` | Public | `LoginRequest` JSON | `200` `LoginResponse` \| `400` Validation \| `401` `{ mensaje: 'Usuario o contraseña incorrectos.' }` \| `429` Rate limit | `usuario.login` (`email`) on success; `usuario.login.fallido` (`email`) on `401` ([DEC-004](../DECISION.md#dec-004--failed-login-auditing-in-bitacora-2026-11-25)) |
+| `POST` | `/api/auth/registro` | `Register` | Public | `RegisterRequest` JSON (`{ email, nombre, password }`) | `201` `UsuarioDto` (`rol: 'Usuario'`) \| `400` Validation \| `409` Duplicate email \| `429` Rate limit | `usuario.registro` (`email`) ([DEC-013](../DECISION.md#dec-013--public-self-registration-endpoint-2026-11-26)) |
 | `GET` | `/api/auth/tiempo` | `GetTokenRemainingTime` | `Usuario`, `Administrador` | `Authorization: Bearer <jwt>` | `200` `text/plain` (`"00:MM:SS"`) \| `401` Unauthorized \| `404` Unavailable | None |
 
 ### Security & Business Rules

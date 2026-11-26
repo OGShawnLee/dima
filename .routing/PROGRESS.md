@@ -2,9 +2,9 @@
 
 ## Current Status
 
-- **Phase:** Implementation Complete (`B001`–`B008` `implemented` on `main`) — Awaiting Security Audits (`$security-audit`)
+- **Phase:** Phase 2 (`B001`–`B008` `implemented` awaiting `$security-audit`; `B009` & `B011` `dispatched` in parallel, `B010` queued next for `REQ-001`–`REQ-007`)
 - **Repository State:** Full `backendnode/` API wired and verified (`11` test files, `132/132` tests passing, `tsc --noEmit` 0 errors, `tsc` build clean, `0` `any` in `src/`); pushed to `origin/main`.
-- **Decision Recorded:** Backend (`backendnode`) is the source of truth; all 12 architectural/security improvements logged in [DECISION.md](DECISION.md).
+- **Decision Recorded:** Backend (`backendnode`) is the source of truth; all 17 architectural/security decisions (`DEC-001`–`DEC-017`) logged in [DECISION.md](DECISION.md).
 
 ---
 
@@ -119,3 +119,6 @@ Resolve and lock these into the backend Zod schemas & OpenAPI 3.0.3 spec before 
 6. **Ticket B006 — Categories & Products (`implemented`):** `/api/categorias` (`protegida` delete guard), `/api/productos` (safe `LIKE` search, FK validation, M:N category assignment/removal).
 7. **Ticket B007 — Hardened File Storage (`implemented`):** `upload.middleware.ts` (size cap, UUID filenames, magic bytes), `/api/archivos` (disk & `LONGBLOB` modes, `nosniff`, safe unlink).
 8. **Ticket B008 — OpenAPI 3.0.3 & Full Verification (`implemented`):** Complete `src/config/openapi.ts` registry (`/openapi.json`, `/swagger`, `/docs`), wire all routes in `app.ts`, end-to-end contract & security test suite (`132/132` passing).
+9. **Ticket B009 — Public Self-Registration & Strong Password Policy (`dispatched`):** `REQ-001` (`POST /api/auth/registro`, rate-limited, server-forced `Usuario`, bitácora `usuario.registro`) + `REQ-002` (`StrongPasswordSchema` 12–128 chars + upper/lower/digit/symbol on `/api/usuarios` & `/api/auth/registro`).
+10. **Ticket B010 — Server-Authoritative Orders Module (`draft`):** `REQ-003` (`pedido` + `pedidodetalle` in `schema.ts` & `db/SCHEMA.sql`, `/api/pedidos` + `/api/pedidos/mios` + `/api/pedidos/:id`, server-side price recomputation, anti-IDOR `404`, OpenAPI + route wiring).
+11. **Ticket B011 — Production Hardening, Remote DB Setup & Deploy Templates (`dispatched`):** `REQ-004` (`TRUST_PROXY` list + `ip:email` auth rate-limit key), `REQ-005` (`HOST` bind `127.0.0.1` in prod), `REQ-006` (`DB_APP_HOST` + `DB_SSL`), and `REQ-007` (`backendnode/deploy/` non-interactive Debian 12 + Ubuntu 24.04 systemd/nginx/backup/install scripts + lightweight `vagrant up db` dev guide).

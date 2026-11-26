@@ -35,6 +35,7 @@ This file is the canonical routing map for `backendnode`. Every backend ticket (
 | **Usuarios** | [usuarios_service.md](services/usuarios_service.md) | `/api/usuarios` | `usuario` | `roles`, `bitacora` | A |
 | **Categorías** | [categorias_service.md](services/categorias_service.md) | `/api/categorias` | `categoria` | `bitacora` | B |
 | **Productos** | [productos_service.md](services/productos_service.md) | `/api/productos` | `producto`, `categoriaproducto` | `categorias`, `archivos`, `bitacora` | B |
+| **Pedidos** | [pedidos_service.md](services/pedidos_service.md) | `/api/pedidos` | `pedido`, `pedidodetalle` | `usuarios`, `productos`, `bitacora` | B |
 | **Archivos** | [archivos_service.md](services/archivos_service.md) | `/api/archivos` | `archivo` | `bitacora` | C |
 
 ---
@@ -45,8 +46,8 @@ Build and migrate tables from Layer 0 → Layer 1 → Layer 2 so foreign-key con
 
 ```text
 Layer 0 (No FKs):         rol, categoria, archivo, bitacora
-Layer 1 (FK -> Layer 0):  usuario (-> rol), producto (-> archivo)
-Layer 2 (Join / Auth):    categoriaproducto (-> categoria, producto), auth (-> usuario, rol)
+Layer 1 (FK -> Layer 0):  usuario (-> rol), producto (-> archivo), pedido (-> usuario)
+Layer 2 (Join / Auth):    categoriaproducto (-> categoria, producto), pedidodetalle (-> pedido, producto), auth (-> usuario, rol)
 ```
 
 All mutating endpoints (`POST`, `PUT`, `DELETE`, and `POST /api/auth`) invoke `IBitacoraService.registrar(...)` (wired through `req.bitacora(...)`).

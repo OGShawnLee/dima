@@ -42,6 +42,7 @@ To prevent GitHub merge conflicts across 3 teammates working concurrently, every
 - **Security & Auth:** `bcrypt` (cost 10), `jsonwebtoken` (`HS256`, WS-Federation claim URIs, 20m TTL, <5m sliding refresh via `Set-Authorization`)
 - **Uploads & Audit:** `multer` (JPG only, hardened), `request-ip`, database-persisted `bitacora`, file-based error log (`log/log.txt`)
 - **Testing:** Vitest + Supertest (unit, contract, and security regression tests)
+- **Lightweight Dev Workflow (Windows / Low-RAM Hosts):** Local dev can run either against local MySQL (`DB_HOST=127.0.0.1`) or against a single standalone `db` VM (`vagrant up db`, ~1 GB RAM on `debian/bookworm64` at `10.10.10.30`) while running `backendnode` (`npm run dev`) natively on the host with `DB_HOST=10.10.10.30` and `DB_APP_HOST=10.10.10.1`. Production deploy scripts in `backendnode/deploy/` remain locked down strictly to `10.10.10.20` (`api`) by default.
 
 ## Key Reference Documents
 
