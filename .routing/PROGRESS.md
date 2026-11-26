@@ -23,7 +23,7 @@
 
 ## Active Tickets
 
-_None yet._
+- **`B001-project-scaffold`** (`implemented` — Track `Shared`, Worker: `Gemini 4 Hydrogen (Medium)`, Branch: `t3/9a78cbd9` @ `03928b2`): Router-verified (`typecheck` 0 errors, `build` OK, `17/17` Vitest/Supertest tests pass, 0 `any`, scope clean). Pending fast-forward merge to `main` and Security Auditor review (`$security-audit`).
 
 ---
 
