@@ -1,0 +1,8 @@
+[Unit]
+Description=Dima MySQL nightly backup
+After=mysql.service
+
+[Service]
+Type=oneshot
+Environment=DB_DATABASE=dima_db
+ExecStart=/usr/local/bin/backup-db.sh

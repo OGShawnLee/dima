@@ -11,7 +11,36 @@ const __dirname = path.dirname(__filename);
 const DEFAULT_BACKEND_DIR = path.resolve(__dirname, '..');
 
 const IDENTIFIER_RE = /^[a-zA-Z0-9_]{1,64}$/;
-const ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1']);
+const IPV4_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
+const ALLOWED_LOCAL_HOSTS = new Set(['localhost', '127.0.0.1']);
+
+/**
+ * Validates the MySQL client host ('localhost', '127.0.0.1', or a valid IPv4 address).
+ * Rejects '%' wildcards, quotes, semicolons, and out-of-range IPv4 octets.
+ */
+export function validateAppHost(host) {
+  if (typeof host !== 'string') {
+    throw new Error('Invalid DB_APP_HOST: must be a string.');
+  }
+  const trimmed = host.trim();
+  if (ALLOWED_LOCAL_HOSTS.has(trimmed)) {
+    return trimmed;
+  }
+  if (!IPV4_RE.test(trimmed)) {
+    throw new Error(
+      `Invalid DB_APP_HOST "${host}": must be "localhost", "127.0.0.1", or a valid IPv4 address.`,
+    );
+  }
+  const octets = trimmed.split('.');
+  const validOctets = octets.every((octet) => {
+    const num = Number(octet);
+    return Number.isInteger(num) && num >= 0 && num <= 255;
+  });
+  if (!validOctets) {
+    throw new Error(`Invalid DB_APP_HOST "${host}": IPv4 octets must be 0..255.`);
+  }
+  return trimmed;
+}
 
 /**
  * Strictly validates a SQL identifier (database or username) against an allowlist.
@@ -46,16 +75,14 @@ export function buildLeastPrivilegeStatements({
 }) {
   const safeDb = validateSqlIdentifier(dbName, 'DB_DATABASE');
   const safeUser = assertSafeAppUser(dbUser);
+  const safeHost = validateAppHost(host);
 
-  if (typeof host !== 'string' || !ALLOWED_HOSTS.has(host)) {
-    throw new Error(`Invalid DB host "${host}": must be "localhost" or "127.0.0.1".`);
-  }
   if (typeof dbPassword !== 'string' || dbPassword.length === 0) {
     throw new Error('DB_PASSWORD must be a non-empty string.');
   }
 
   const escapedPassword = mysql.escape(dbPassword);
-  const account = `'${safeUser}'@'${host}'`;
+  const account = `'${safeUser}'@'${safeHost}'`;
 
   return {
     createUser: `CREATE USER IF NOT EXISTS ${account} IDENTIFIED BY ${escapedPassword}`,
@@ -169,11 +196,17 @@ export async function runSetupDb(options = {}) {
   }
 
   // 2. Apply validated user and least-privilege grants with multipleStatements: false
+  const requestedAppHost =
+    options.appHost ??
+    process.env.DB_APP_HOST ??
+    parsed.DB_APP_HOST ??
+    (ALLOWED_LOCAL_HOSTS.has(dbHost) ? dbHost : 'localhost');
+
   const statements = buildLeastPrivilegeStatements({
     dbName,
     dbUser,
     dbPassword,
-    host: ALLOWED_HOSTS.has(dbHost) ? dbHost : 'localhost',
+    host: validateAppHost(requestedAppHost),
   });
 
   const adminConnection = await mysql.createConnection({
@@ -224,10 +257,15 @@ function isMainModule() {
 }
 
 if (isMainModule()) {
-  const args = new Set(process.argv.slice(2));
+  const rawArgs = process.argv.slice(2);
+  const args = new Set(rawArgs);
+  const appHostArg = rawArgs.find((arg) => arg.startsWith('--app-host='));
+  const appHost = appHostArg ? appHostArg.slice('--app-host='.length) : undefined;
+
   runSetupDb({
     nonInteractive: args.has('--non-interactive'),
     seed: args.has('--seed'),
+    appHost,
   })
     .then(() => {
       console.log('Database schema and least-privilege user configured successfully.');

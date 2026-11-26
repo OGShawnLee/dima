@@ -1,0 +1,34 @@
+[Unit]
+Description=Dima backendnode (Node.js + TypeScript Express API)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=backendnode
+Group=backendnode
+WorkingDirectory=/opt/backendnode
+EnvironmentFile=/etc/backendnode/backendnode.env
+ExecStart=/usr/bin/node /opt/backendnode/dist/index.js
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+SyslogIdentifier=backendnode
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/backendnode/log /opt/backendnode/uploads
+PrivateTmp=true
+ProtectHome=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

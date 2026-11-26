@@ -15,6 +15,7 @@ import {
 import {
   assertSafeAppUser,
   buildLeastPrivilegeStatements,
+  validateAppHost,
   validateSqlIdentifier,
 } from '../scripts/setup-db.mjs';
 import {
@@ -224,6 +225,27 @@ describe('B003 SCHEMA.sql & Automated Least-Privilege Setup Scripts', () => {
       );
       expect(stmts.grantDml.toUpperCase()).not.toContain('GRANT ALL');
       expect(stmts.flush).toBe('FLUSH PRIVILEGES');
+    });
+
+    it('validateAppHost accepts localhost, 127.0.0.1, and valid IPv4, and rejects wildcards/injection', () => {
+      expect(validateAppHost('localhost')).toBe('localhost');
+      expect(validateAppHost('127.0.0.1')).toBe('127.0.0.1');
+      expect(validateAppHost('10.10.10.20')).toBe('10.10.10.20');
+
+      expect(() => validateAppHost('%')).toThrow();
+      expect(() => validateAppHost('999.1.1.1')).toThrow();
+      expect(() => validateAppHost('10.10.10.20; DROP TABLE rol')).toThrow();
+
+      const remoteStmts = buildLeastPrivilegeStatements({
+        dbName: 'dima_db',
+        dbUser: 'dima_app',
+        dbPassword: 'strong_app_password',
+        host: '10.10.10.20',
+      });
+      expect(remoteStmts.createUser).toContain("'dima_app'@'10.10.10.20'");
+      expect(remoteStmts.grantDml).toBe(
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON `dima_db`.* TO 'dima_app'@'10.10.10.20'",
+      );
     });
   });
 });

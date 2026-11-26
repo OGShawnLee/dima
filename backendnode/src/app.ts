@@ -3,6 +3,7 @@ import cors from 'cors';
 import express, { type Express } from 'express';
 import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
+import type { TrustProxySetting } from './config/env';
 import { generateOpenApiDocument } from './config/openapi';
 import { bitacoraMiddleware } from './middlewares/bitacora.middleware';
 import { createErrorHandler } from './middlewares/errorhandler.middleware';
@@ -16,7 +17,7 @@ import { usuariosRouter } from './routes/usuarios.routes';
 
 export interface CreateAppOptions {
   corsOrigins?: string[];
-  trustProxy?: boolean;
+  trustProxy?: TrustProxySetting;
   nodeEnv?: string;
   logFilePath?: string;
   mountDefaultApiRoutes?: boolean;

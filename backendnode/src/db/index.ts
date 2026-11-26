@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { drizzle } from 'drizzle-orm/mysql2';
 import mysql, { type Pool, type PoolOptions } from 'mysql2/promise';
 import { getEnv } from '../config/env';
@@ -14,7 +15,7 @@ export function createDbPool(config?: PoolOptions): Pool {
   }
 
   const env = getEnv();
-  return mysql.createPool({
+  const poolOptions: PoolOptions = {
     host: env.DB_HOST,
     port: env.DB_PORT,
     user: env.DB_USER,
@@ -23,7 +24,15 @@ export function createDbPool(config?: PoolOptions): Pool {
     charset: 'utf8mb4',
     waitForConnections: true,
     connectionLimit: 10,
-  });
+  };
+
+  if (env.DB_SSL) {
+    poolOptions.ssl = env.DB_SSL_CA
+      ? { ca: fs.readFileSync(env.DB_SSL_CA, 'utf8'), rejectUnauthorized: true }
+      : { rejectUnauthorized: true };
+  }
+
+  return mysql.createPool(poolOptions);
 }
 
 export function createDb(pool?: Pool) {

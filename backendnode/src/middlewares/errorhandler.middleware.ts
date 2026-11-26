@@ -2,10 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
 import { MulterError } from 'multer';
-import requestIp from 'request-ip';
 import { ZodError } from 'zod';
 import { ClaimTypes } from '../config/claimtypes';
 import { type ErrorDetail, HttpError } from '../utils/httpError';
+import { extractClientIp } from './ratelimit.middleware';
 
 const DEFAULT_ERROR_MESSAGE = 'No se ha podido procesar la petición. Inténtelo nuevamente más tarde.';
 
@@ -109,7 +109,7 @@ export function createErrorHandler(options?: ErrorHandlerOptions): ErrorRequestH
     const { statusCode, clientMessage, logMessage, detalles } = resolveError(err);
     const activeNodeEnv = options?.nodeEnv ?? process.env.NODE_ENV ?? 'production';
 
-    const rawIp = requestIp.getClientIp(req) ?? 'unknown';
+    const rawIp = extractClientIp(req);
     const rawEmail = req.decodedToken?.[ClaimTypes.Name] ?? 'invitado';
 
     const safeIp = sanitizeLogField(rawIp);

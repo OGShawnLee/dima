@@ -50,3 +50,7 @@ npm run typecheck
 npm run build
 npm test
 ```
+
+## Production Deployment (`deploy/`)
+
+Production deployment templates for the `api` (`10.10.10.20`) and `db` (`10.10.10.30`) servers—including `backendnode.service`, `nginx-api.conf`, `install-api.sh`, `install-db.sh`, nightly `backup-db.timer`, and the lightweight Windows `vagrant up db` dev workflow—are documented in [deploy/README.md](deploy/README.md).

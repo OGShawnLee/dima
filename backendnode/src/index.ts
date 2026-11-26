@@ -14,6 +14,6 @@ const app = createApp({
   nodeEnv: appEnv.NODE_ENV,
 });
 
-app.listen(appEnv.SERVER_PORT, () => {
-  console.log(`Server listening on port ${appEnv.SERVER_PORT} (${appEnv.NODE_ENV})`);
+app.listen(appEnv.SERVER_PORT, appEnv.HOST, () => {
+  console.log(`Server listening on http://${appEnv.HOST}:${appEnv.SERVER_PORT} (${appEnv.NODE_ENV})`);
 });
