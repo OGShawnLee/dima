@@ -1,0 +1,18 @@
+@model Categoria
+<dl class="row mb-0">
+    <dt class="col-sm-3">@Html.DisplayNameFor(m => m.CategoriaId)</dt>
+    <dd class="col-sm-9">@Model.CategoriaId</dd>
+    <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Nombre)</dt>
+    <dd class="col-sm-9 text-break">@Model.Nombre</dd>
+    <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Protegida)</dt>
+    <dd class="col-sm-9">
+        @if (Model.Protegida)
+        {
+            <span class="badge text-bg-warning"><i class="bi bi-lock"></i> Sí</span>
+        }
+        else
+        {
+            <span class="badge text-bg-secondary">No</span>
+        }
+    </dd>
+</dl>
