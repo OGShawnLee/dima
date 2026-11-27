@@ -19,9 +19,10 @@
 | `F005` | Usuarios CRUD + Bitácora | `implemented` (merged to local `main` @ `0f491b7`, not pushed) | Front | F001 | — |
 | `F006` | Comprar catalog + session cart | `implemented` (merged to local `main` @ `10b7b13`, not pushed) | Front | F004 | — |
 | `F007` | Self-registration + checkout + orders (customer & admin) | `implemented` (merged to local `main` @ `f7e75ae`, not pushed) | Front | F006 + backend endpoints | — |
-| `F008` | Production hardening + 3-server deployment | `draft` | Front/Ops | F001–F006 (F007 if ready) | — |
+| `F008` | Production hardening + 3-server deployment | `dispatched` (step A) | Front/Ops | F001–F007; step B after F009 | — |
+| `F009` | App hardening: Spanish binding messages, global API-error filter, image cache headers | `dispatched` | Front | F001–F007 | — |
 
-`F002`, `F003`, and `F005` touch disjoint files and can run in **parallel worktrees** once `F001` is merged.
+`F002`, `F003`, and `F005` touch disjoint files and can run in **parallel worktrees** once `F001` is merged. `F008` step A (deploy files) and `F009` (app code) are disjoint and can run in parallel.
 
 ## Timeline (America/Mexico_City)
 
