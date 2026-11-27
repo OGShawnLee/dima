@@ -26,3 +26,8 @@ frontendnet/obj/
 # OS & editor clutter
 .DS_Store
 Thumbs.db
+
+# TLS certificates and private keys
+backendnode/deploy/certs/
+*.key
+*.pem

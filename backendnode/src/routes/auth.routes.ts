@@ -1,7 +1,11 @@
 import { Router, type RequestHandler } from 'express';
 import { createAuthController } from '../controllers/auth.controller';
 import { authorize } from '../middlewares/auth.middleware';
-import { createAuthRateLimiter } from '../middlewares/ratelimit.middleware';
+import {
+  createAuthRateLimiter,
+  createLoginIpRateLimiter,
+  createRegisterRateLimiter,
+} from '../middlewares/ratelimit.middleware';
 import { validate } from '../middlewares/validate.middleware';
 import { LoginRequestSchema, RegisterRequestSchema } from '../schemas/auth.schema';
 import type { RoleName } from '../schemas/common.schema';
@@ -10,6 +14,7 @@ import type { IAuthService } from '../services/auth.service';
 export interface AuthRouterDeps {
   service?: IAuthService;
   rateLimiter?: RequestHandler;
+  loginIpRateLimiter?: RequestHandler;
   registerRateLimiter?: RequestHandler;
   authorizeMiddleware?: (...allowedRoles: RoleName[]) => RequestHandler;
 }
@@ -17,12 +22,18 @@ export interface AuthRouterDeps {
 export function createAuthRouter(deps?: AuthRouterDeps): Router {
   const router = Router();
   const controller = createAuthController(deps?.service);
+  const loginIpLimiter = deps?.loginIpRateLimiter ?? createLoginIpRateLimiter();
   const limiter = deps?.rateLimiter ?? createAuthRateLimiter();
-  const registerLimiter =
-    deps?.registerRateLimiter ?? deps?.rateLimiter ?? createAuthRateLimiter();
+  const registerLimiter = deps?.registerRateLimiter ?? createRegisterRateLimiter();
   const auth = deps?.authorizeMiddleware ?? authorize;
 
-  router.post('/', limiter, validate({ body: LoginRequestSchema }), controller.login);
+  router.post(
+    '/',
+    loginIpLimiter,
+    limiter,
+    validate({ body: LoginRequestSchema }),
+    controller.login,
+  );
   router.post(
     '/registro',
     registerLimiter,

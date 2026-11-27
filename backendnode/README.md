@@ -25,9 +25,15 @@ npm run dev
 
 2. **`npm run setup:db`** (`scripts/setup-db.mjs`)
    - Prompts once (masked) for your local MySQL `root` password.
-   - Applies the authoritative pure-DDL schema at `db/SCHEMA.sql`.
+   - Creates `DB_DATABASE` if missing, aborts with a clear message if a legacy `SequelizeMeta` table is detected, and applies the authoritative pure-DDL schema at `db/SCHEMA.sql`.
    - Creates/updates `DB_USER` from `.env` with **least-privilege DML grants only** (`SELECT, INSERT, UPDATE, DELETE` on `DB_DATABASE.*`).
-   - Optionally pass `--seed` (`npm run setup:db -- --seed`) to run `npm run db:seed` afterward (blocked when `NODE_ENV=production`).
+   - Optionally pass `--seed` (`npm run setup:db -- --seed`) to run `npm run db:seed` afterward (blocked when `NODE_ENV=production` or non-loopback `DB_HOST` unless `--allow-remote-dev-seed` is passed).
+
+> **Upgrading from the legacy Sequelize course database (`REQ-008`):** If your local `mercadolibrenode` database was created by the old Sequelize project (`SequelizeMeta` table present, `CHAR(36) utf8mb4_bin` IDs), `CREATE TABLE IF NOT EXISTS` cannot upgrade it in place and `fk_pedido_usuario` will fail. Drop and rebuild it cleanly:
+> ```sql
+> DROP DATABASE mercadolibrenode;
+> ```
+> Then re-run `npm run setup:db -- --seed`.
 
 ## Drizzle Introspection (`db:pull`)
 

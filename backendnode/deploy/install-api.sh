@@ -26,6 +26,15 @@ if [[ -f "$DEPLOY_ENV_FILE" ]]; then
   set +a
 fi
 
+validate_secret() {
+  local name="$1"
+  local value="$2"
+  if [[ "$value" =~ [\\\'\"\#[:space:]] ]]; then
+    echo "ERROR: ${name} must not contain backslashes, quotes, '#', or whitespace." >&2
+    exit 1
+  fi
+}
+
 if [[ -z "${DB_PASSWORD:-}" ]]; then
   echo "ERROR: DB_PASSWORD must be set in environment or $DEPLOY_ENV_FILE" >&2
   exit 1
@@ -34,10 +43,12 @@ if [[ -z "${JWT_SECRET:-}" || "${#JWT_SECRET}" -lt 32 ]]; then
   echo "ERROR: JWT_SECRET (at least 32 characters) must be set in environment or $DEPLOY_ENV_FILE" >&2
   exit 1
 fi
+validate_secret "DB_PASSWORD" "$DB_PASSWORD"
+validate_secret "JWT_SECRET" "$JWT_SECRET"
 
 DB_HOST="${DB_HOST:-10.10.10.30}"
 DB_PORT="${DB_PORT:-3306}"
-DB_DATABASE="${DB_DATABASE:-dima_db}"
+DB_DATABASE="${DB_DATABASE:-mercadolibrenode}"
 DB_USER="${DB_USER:-dima_app}"
 DB_SSL="${DB_SSL:-false}"
 DB_SSL_CA="${DB_SSL_CA:-}"
@@ -45,18 +56,24 @@ CORS_ORIGINS="${CORS_ORIGINS:-https://web.dima.lab}"
 FILES_IN_BD="${FILES_IN_BD:-false}"
 WEB_HOST="${WEB_HOST:-10.10.10.10}"
 TRUST_PROXY="${TRUST_PROXY:-loopback,${WEB_HOST}}"
+MGMT_CIDR="${MGMT_CIDR:-10.10.10.0/24}"
 
 # 1. Base packages
 apt-get update -y
 apt-get install -y "${DPKG_OPTS[@]}" ca-certificates curl gnupg nginx ufw
 
-# 2. Node.js 22 LTS via NodeSource (Debian 12 & Ubuntu 24.04)
+# 2. Node.js 22 LTS via signed NodeSource APT keyring (Debian 12 & Ubuntu 24.04)
 NODE_MAJOR=0
 if command -v node >/dev/null 2>&1; then
   NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
 fi
 if [[ "$NODE_MAJOR" -lt 22 ]]; then
-  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  install -d -m 755 /usr/share/keyrings
+  curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+    | gpg --dearmor --yes -o /usr/share/keyrings/nodesource.gpg
+  printf 'deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main\n' \
+    > /etc/apt/sources.list.d/nodesource.list
+  apt-get update -y
   apt-get install -y "${DPKG_OPTS[@]}" nodejs
 fi
 
@@ -147,11 +164,17 @@ else
   echo "WARN: /etc/ssl/dima/api.dima.lab.{crt,key} not found yet; skipping nginx reload." >&2
 fi
 
-# 9. Strict production firewall: SSH + HTTPS 443 from web (10.10.10.10) only
+# 9. Strict production firewall: scoped SSH + HTTPS 443 from web (10.10.10.10) only
 ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
-ufw allow 22/tcp
+ufw allow from "$MGMT_CIDR" to any port 22 proto tcp
+if [[ -n "${SSH_CONNECTION:-}" ]]; then
+  SSH_PEER_IP="${SSH_CONNECTION%% *}"
+  if [[ -n "$SSH_PEER_IP" && "$SSH_PEER_IP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+    ufw allow from "${SSH_PEER_IP}/32" to any port 22 proto tcp
+  fi
+fi
 ufw allow from "$WEB_HOST" to any port 443 proto tcp
 ufw --force enable
 

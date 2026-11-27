@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -265,6 +266,79 @@ describe('B003 SCHEMA.sql & Automated Least-Privilege Setup Scripts', () => {
       expect(remoteStmts.grantDml).toBe(
         "GRANT SELECT, INSERT, UPDATE, DELETE ON `dima_db`.* TO 'dima_app'@'10.10.10.20'",
       );
+    });
+  });
+
+  describe('B011 Audit Remediation Regression Checks (AUD-B011-01, 04, 05, 06, 07)', () => {
+    const REPO_ROOT = path.resolve(BACKEND_ROOT, '..');
+    const DEPLOY_DIR = path.join(BACKEND_ROOT, 'deploy');
+
+    it('AUD-B011-01: deploy/README.md and deploy/*.sh never pass NODE_ENV=development to seed', () => {
+      const filesToCheck = [
+        path.join(DEPLOY_DIR, 'README.md'),
+        ...fs
+          .readdirSync(DEPLOY_DIR)
+          .filter((name) => name.endsWith('.sh'))
+          .map((name) => path.join(DEPLOY_DIR, name)),
+      ];
+
+      for (const filePath of filesToCheck) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        expect(content).not.toMatch(/NODE_ENV=development[^\n]*seed/i);
+      }
+    });
+
+    it('AUD-B011-04: SCHEMA.sql is DB-agnostic and default DB_DATABASE matches across deploy & .env.example', () => {
+      const schemaSql = fs.readFileSync(SCHEMA_SQL_PATH, 'utf8');
+      expect(schemaSql).not.toMatch(/^\s*CREATE\s+DATABASE\b/im);
+      expect(schemaSql).not.toMatch(/^\s*USE\s+`/im);
+
+      const installDb = fs.readFileSync(path.join(DEPLOY_DIR, 'install-db.sh'), 'utf8');
+      const installApi = fs.readFileSync(path.join(DEPLOY_DIR, 'install-api.sh'), 'utf8');
+      const backupSh = fs.readFileSync(path.join(DEPLOY_DIR, 'backup-db.sh'), 'utf8');
+      const backupSvc = fs.readFileSync(path.join(DEPLOY_DIR, 'backup-db.service'), 'utf8');
+      const envExample = fs.readFileSync(path.join(BACKEND_ROOT, '.env.example'), 'utf8');
+
+      expect(installDb).toMatch(/mysql[^\n]*"\$DB_DATABASE"\s*<\s*"\$SCHEMA_SQL"/);
+      expect(backupSh).toContain('umask 077');
+      expect(installDb).toContain('wait-network.conf');
+
+      const dbMatch = installDb.match(/DB_DATABASE="\$\{DB_DATABASE:-([^}]+)\}"/)?.[1];
+      const apiMatch = installApi.match(/DB_DATABASE="\$\{DB_DATABASE:-([^}]+)\}"/)?.[1];
+      const backupShMatch = backupSh.match(/DB_DATABASE="\$\{DB_DATABASE:-([^}]+)\}"/)?.[1];
+      const backupSvcMatch = backupSvc.match(/Environment=DB_DATABASE=(\S+)/)?.[1];
+      const envExampleMatch = envExample.match(/^DB_DATABASE=(\S+)/m)?.[1];
+
+      expect(dbMatch).toBe('mercadolibrenode');
+      expect(apiMatch).toBe(dbMatch);
+      expect(backupShMatch).toBe(dbMatch);
+      expect(backupSvcMatch).toBe(dbMatch);
+      expect(envExampleMatch).toBe(dbMatch);
+    });
+
+    it('AUD-B011-05: backendnode/deploy/certs/ private keys are gitignored', () => {
+      const status = execFileSync(
+        'git',
+        ['check-ignore', '-q', 'backendnode/deploy/certs/x.key'],
+        { cwd: REPO_ROOT },
+      );
+      expect(status).toBeDefined();
+    });
+
+    it('AUD-B011-06 & AUD-B011-07: deploy scripts reject unsafe secret chars, avoid curl|bash, and scope SSH', () => {
+      const installDb = fs.readFileSync(path.join(DEPLOY_DIR, 'install-db.sh'), 'utf8');
+      const installApi = fs.readFileSync(path.join(DEPLOY_DIR, 'install-api.sh'), 'utf8');
+      const backupSh = fs.readFileSync(path.join(DEPLOY_DIR, 'backup-db.sh'), 'utf8');
+
+      expect(installDb).toContain('validate_secret "DB_APP_PASSWORD"');
+      expect(installDb).toContain('REQUIRE SSL');
+      expect(installApi).toContain('validate_secret "DB_PASSWORD"');
+      expect(installApi).toContain('/usr/share/keyrings/nodesource.gpg');
+
+      for (const script of [installDb, installApi, backupSh]) {
+        expect(script).not.toMatch(/\|\s*bash\b/);
+        expect(script).not.toMatch(/\bufw\s+allow\s+22\/tcp\b/);
+      }
     });
   });
 });

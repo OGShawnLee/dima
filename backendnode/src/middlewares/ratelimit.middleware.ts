@@ -36,3 +36,33 @@ export function createAuthRateLimiter(options?: AuthRateLimiterOptions): RateLim
     },
   });
 }
+
+export function createLoginIpRateLimiter(
+  options?: AuthRateLimiterOptions,
+): RateLimitRequestHandler {
+  return rateLimit({
+    windowMs: options?.windowMs ?? 15 * 60 * 1000,
+    max: options?.max ?? 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req: Request): string => extractClientIp(req),
+    message: {
+      mensaje: 'Demasiados intentos de inicio de sesión desde esta dirección IP. Inténtelo nuevamente más tarde.',
+    },
+  });
+}
+
+export function createRegisterRateLimiter(
+  options?: AuthRateLimiterOptions,
+): RateLimitRequestHandler {
+  return rateLimit({
+    windowMs: options?.windowMs ?? 60 * 60 * 1000,
+    max: options?.max ?? 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req: Request): string => extractClientIp(req),
+    message: {
+      mensaje: 'Demasiados intentos de registro desde esta dirección IP. Inténtelo nuevamente más tarde.',
+    },
+  });
+}

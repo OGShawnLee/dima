@@ -1,12 +1,6 @@
 -- Dima Authoritative Database Schema (MySQL 8.0 Pure DDL)
 -- Aligned 1:1 with backendnode/src/db/schema.ts (DEC-002 & DEC-012).
--- Contains pure DDL only: no account statements, privileges, credentials, or seed data.
-
-CREATE DATABASE IF NOT EXISTS `mercadolibrenode`
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE `mercadolibrenode`;
+-- Contains pure DDL only: no database creation/USE, account statements, privileges, credentials, or seed data.
 
 -- Layer 0: Foundational tables with no foreign keys
 

@@ -1,7 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import requestIp from 'request-ip';
-import { ClaimTypes } from '../config/claimtypes';
-import type { AuditContext } from '../schemas/common.schema';
+import { buildAuditContext } from '../middlewares/bitacora.middleware';
 import type {
   CreateUsuarioRequest,
   UpdateUsuarioRequest,
@@ -15,13 +13,6 @@ export interface UsuariosController {
   create: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   update: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   remove: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-}
-
-function buildAuditContext(req: Request): AuditContext {
-  return {
-    ip: requestIp.getClientIp(req) ?? 'unknown',
-    actorEmail: req.decodedToken?.[ClaimTypes.Name] ?? 'invitado',
-  };
 }
 
 export function createUsuariosController(

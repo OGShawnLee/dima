@@ -1,7 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import requestIp from 'request-ip';
-import { ClaimTypes } from '../config/claimtypes';
-import type { AuditContext } from '../schemas/common.schema';
+import { buildAuditContext } from '../middlewares/bitacora.middleware';
 import {
   archivosService,
   type IArchivosService,
@@ -16,13 +14,6 @@ export interface ArchivosController {
   create: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   update: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   delete: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-}
-
-function buildAuditContext(req: Request): AuditContext {
-  return {
-    ip: requestIp.getClientIp(req) ?? 'unknown',
-    actorEmail: req.decodedToken?.[ClaimTypes.Name] ?? 'invitado',
-  };
 }
 
 function toUploadedImageInput(file: Express.Multer.File): UploadedImageInput {

@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import requestIp from 'request-ip';
-import { ClaimTypes } from '../config/claimtypes';
+import { buildAuditContext } from '../middlewares/bitacora.middleware';
 import type { LoginRequest, RegisterRequest } from '../schemas/auth.schema';
 import { authService, type IAuthService } from '../services/auth.service';
 
@@ -14,9 +13,7 @@ export function createAuthController(service: IAuthService = authService): AuthC
   return {
     login: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
-        const ip = requestIp.getClientIp(req) ?? 'unknown';
-        const actorEmail = req.decodedToken?.[ClaimTypes.Name] ?? 'invitado';
-        const result = await service.login(req.body as LoginRequest, { ip, actorEmail });
+        const result = await service.login(req.body as LoginRequest, buildAuditContext(req));
         res.status(200).json(result);
       } catch (err) {
         next(err);
@@ -25,9 +22,8 @@ export function createAuthController(service: IAuthService = authService): AuthC
 
     register: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
-        const ip = requestIp.getClientIp(req) ?? 'unknown';
         const body = req.body as RegisterRequest;
-        const result = await service.register(body, { ip, actorEmail: body.email });
+        const result = await service.register(body, buildAuditContext(req, body.email));
         res.status(201).json(result);
       } catch (err) {
         next(err);

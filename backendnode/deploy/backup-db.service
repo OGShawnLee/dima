@@ -4,5 +4,5 @@ After=mysql.service
 
 [Service]
 Type=oneshot
-Environment=DB_DATABASE=dima_db
+Environment=DB_DATABASE=mercadolibrenode
 ExecStart=/usr/local/bin/backup-db.sh

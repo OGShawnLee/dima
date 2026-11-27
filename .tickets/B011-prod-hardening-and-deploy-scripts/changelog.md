@@ -29,3 +29,15 @@ Implemented `DEC-016` (`REQ-004`, `REQ-005`) and `DEC-017` (`REQ-006`, `REQ-007`
 - `npm run build` (`tsc`): passed (`0` errors)
 - `npm test` (`vitest run`): passed (`12` test files, `147` tests, `0` failures)
 - `\bany\b` in `backendnode/src/**`: `0` matches
+
+---
+
+## Audit Remediation (`AUD-B011-01`–`07` + `REQ-008`–`010`)
+
+- **`AUD-B011-01` + `REQ-010` #5**: Added `backendnode/src/db/bootstrap.ts` (`runProductionBootstrap`, `"db:bootstrap"` script in `package.json`) validating `ADMIN_EMAIL` and `ADMIN_PASSWORD` against `StrongPasswordSchema`; updated `assertSeedAllowed` in `src/db/seed.ts` to block non-loopback `DB_HOST` unless `--allow-remote-dev-seed` is passed; removed `NODE_ENV=development ... seed.js` from `backendnode/deploy/README.md` in favor of `dist/db/bootstrap.js`.
+- **`AUD-B011-02`**: Exported `buildAuditContext(req, actorEmailOverride?)` from `src/middlewares/bitacora.middleware.ts` using `extractClientIp(req)`; replaced `request-ip` in all 6 controllers (`auth`, `usuarios`, `categorias`, `productos`, `archivos`, `pedidos`); uninstalled `request-ip` and `@types/request-ip` from `package.json` / `package-lock.json`.
+- **`AUD-B011-03`**: Added `createLoginIpRateLimiter` (IP-only, 100 / 15m) in front of `createAuthRateLimiter` (`ip:email`, 10 / 15m) on `POST /api/auth`, and `createRegisterRateLimiter` (IP-only, 5 / hour) on `POST /api/auth/registro`; exposed `loginIpRateLimiter` on `AuthRouterDeps`.
+- **`AUD-B011-04` + `REQ-008` + `REQ-010` #1, #2, #6**: Removed `CREATE DATABASE` / `USE` from `db/SCHEMA.sql`; unified default `DB_DATABASE=mercadolibrenode` across `.env.example`, `install-db.sh`, `install-api.sh`, `backup-db.sh`, `backup-db.service`, and `deploy/README.md`; updated `scripts/setup-db.mjs` to create `dbName`, detect legacy `SequelizeMeta` tables, and connect with `database: dbName`; added `umask 077`, `SHOW TABLES` check, `ERR` partial-dump cleanup trap, and `gzip -t` payload validation to `backup-db.sh`; added `mysql.service.d/wait-network.conf` (`network-online.target`) and `backup-db.service.d/override.conf` in `install-db.sh`.
+- **`AUD-B011-05` + `REQ-009`**: Added `backendnode/deploy/certs/`, `*.key`, and `*.pem` to root `.gitignore`.
+- **`AUD-B011-06` & `AUD-B011-07`**: Added `validate_secret` (rejecting `\`, `'`, `"`, `#`, whitespace) in `install-db.sh` and `install-api.sh`; added `REQUIRE SSL` when `DB_REQUIRE_SSL=true` in `install-db.sh`; replaced `curl | bash` NodeSource install with signed APT keyring (`/usr/share/keyrings/nodesource.gpg`) in `install-api.sh`; scoped SSH `ufw` to `MGMT_CIDR` (`10.10.10.0/24` default) plus active `$SSH_CONNECTION` peer IP in both scripts; updated `backendnode/deploy/README.md` (`REQ-010` #4) and `backendnode/README.md` (`REQ-008`).
+- **Regression Tests**: Added remediation tests in `tests/db.test.ts`, `tests/setup.test.ts`, and `tests/prod-hardening.test.ts`.

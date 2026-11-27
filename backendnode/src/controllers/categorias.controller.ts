@@ -1,7 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import requestIp from 'request-ip';
-import { ClaimTypes } from '../config/claimtypes';
-import type { AuditContext } from '../schemas/common.schema';
+import { buildAuditContext } from '../middlewares/bitacora.middleware';
 import { categoriasService, type ICategoriasService } from '../services/categorias.service';
 import { notFound } from '../utils/httpError';
 
@@ -11,13 +9,6 @@ export interface CategoriasController {
   create: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   update: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   delete: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-}
-
-function getAuditContext(req: Request): AuditContext {
-  return {
-    ip: requestIp.getClientIp(req) ?? 'unknown',
-    actorEmail: req.decodedToken?.[ClaimTypes.Name] ?? 'invitado',
-  };
 }
 
 export function createCategoriasController(
@@ -49,7 +40,7 @@ export function createCategoriasController(
 
     create: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
-        const created = await service.create(req.body, getAuditContext(req));
+        const created = await service.create(req.body, buildAuditContext(req));
         res.status(201).json(created);
       } catch (err) {
         next(err);
@@ -59,7 +50,7 @@ export function createCategoriasController(
     update: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
         const id = Number(req.params.id);
-        await service.update(id, req.body, getAuditContext(req));
+        await service.update(id, req.body, buildAuditContext(req));
         res.status(204).send();
       } catch (err) {
         next(err);
@@ -69,7 +60,7 @@ export function createCategoriasController(
     delete: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
         const id = Number(req.params.id);
-        await service.delete(id, getAuditContext(req));
+        await service.delete(id, buildAuditContext(req));
         res.status(204).send();
       } catch (err) {
         next(err);

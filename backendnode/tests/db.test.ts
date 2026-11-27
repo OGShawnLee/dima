@@ -1,6 +1,8 @@
+import bcrypt from 'bcrypt';
 import { getTableConfig } from 'drizzle-orm/mysql-core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { DbClient } from '../src/db';
+import { runProductionBootstrap } from '../src/db/bootstrap';
 import {
   archivo,
   bitacora,
@@ -180,16 +182,80 @@ describe('B002 Database Schema & Idempotent Seeder', () => {
   });
 
   describe('Seeder guard & seed datasets', () => {
-    it('blocks seeding in production and allows development and test', async () => {
+    it('blocks seeding in production and blocks non-loopback DB_HOST unless allowRemoteDevSeed is true', async () => {
       expect(() => assertSeedAllowed('production')).toThrow(
         'Seeding is disabled in production environment.',
       );
-      expect(() => assertSeedAllowed('development')).not.toThrow();
-      expect(() => assertSeedAllowed('test')).not.toThrow();
+      expect(() => assertSeedAllowed('development', '10.10.10.30')).toThrow(
+        /non-loopback DB_HOST/i,
+      );
+      expect(() => assertSeedAllowed('development', '10.10.10.30', true)).not.toThrow();
+      expect(() => assertSeedAllowed('development', 'localhost')).not.toThrow();
+      expect(() => assertSeedAllowed('development', '127.0.0.1')).not.toThrow();
+      expect(() => assertSeedAllowed('test', '::1')).not.toThrow();
 
       await expect(runSeed({} as DbClient, 'production')).rejects.toThrow(
         'Seeding is disabled in production environment.',
       );
+      await expect(
+        runSeed({} as DbClient, 'development', { dbHost: '10.10.10.30' }),
+      ).rejects.toThrow(/non-loopback DB_HOST/i);
+    });
+
+    it('runProductionBootstrap rejects weak ADMIN_PASSWORD (including patito) and succeeds with strong password', async () => {
+      const fakeDb = {} as DbClient;
+      await expect(
+        runProductionBootstrap(fakeDb, {
+          adminEmail: 'admin@dima.lab',
+          adminPassword: 'patito',
+        }),
+      ).rejects.toThrow();
+
+      await expect(
+        runProductionBootstrap(fakeDb, {
+          adminEmail: 'admin@dima.lab',
+          adminPassword: 'weak',
+        }),
+      ).rejects.toThrow();
+
+      const insertedValues: Array<Record<string, unknown>> = [];
+      const mockDb = {
+        select: () => ({
+          from: () => ({
+            where: () => ({
+              limit: async () => [],
+            }),
+          }),
+        }),
+        insert: () => ({
+          values: (vals: Record<string, unknown>) => {
+            insertedValues.push(vals);
+            return {
+              onDuplicateKeyUpdate: async () => undefined,
+            };
+          },
+        }),
+        update: () => ({
+          set: () => ({
+            where: async () => undefined,
+          }),
+        }),
+      } as unknown as DbClient;
+
+      const hashSpy = vi.spyOn(bcrypt, 'hash');
+      await runProductionBootstrap(mockDb, {
+        adminEmail: 'Admin@Dima.Lab',
+        adminPassword: 'StrongProdPassword!2026',
+        adminNombre: 'Prod Admin',
+      });
+
+      expect(hashSpy).toHaveBeenCalledWith('StrongProdPassword!2026', 10);
+      expect(hashSpy).not.toHaveBeenCalledWith('patito', expect.anything());
+      const adminInsert = insertedValues.find((v) => v.email === 'admin@dima.lab');
+      expect(adminInsert).toBeDefined();
+      expect(adminInsert?.protegido).toBe(true);
+      expect(adminInsert?.nombre).toBe('Prod Admin');
+      hashSpy.mockRestore();
     });
 
     it('defines exact SEED_ROLES, SEED_CATEGORIAS, SEED_PRODUCTOS, SEED_CATEGORIA_PRODUCTOS, and SEED_USERS', () => {

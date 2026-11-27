@@ -1,7 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import requestIp from 'request-ip';
-import { ClaimTypes } from '../config/claimtypes';
-import type { AuditContext } from '../schemas/common.schema';
+import { buildAuditContext } from '../middlewares/bitacora.middleware';
 import { productosService, type IProductosService } from '../services/productos.service';
 import { notFound } from '../utils/httpError';
 
@@ -13,13 +11,6 @@ export interface ProductosController {
   delete: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   assignCategoria: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   removeCategoria: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-}
-
-function getAuditContext(req: Request): AuditContext {
-  return {
-    ip: requestIp.getClientIp(req) ?? 'unknown',
-    actorEmail: req.decodedToken?.[ClaimTypes.Name] ?? 'invitado',
-  };
 }
 
 export function createProductosController(
@@ -52,7 +43,7 @@ export function createProductosController(
 
     create: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
-        const created = await service.create(req.body, getAuditContext(req));
+        const created = await service.create(req.body, buildAuditContext(req));
         res.status(201).json(created);
       } catch (err) {
         next(err);
@@ -62,7 +53,7 @@ export function createProductosController(
     update: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
         const id = Number(req.params.id);
-        await service.update(id, req.body, getAuditContext(req));
+        await service.update(id, req.body, buildAuditContext(req));
         res.status(204).send();
       } catch (err) {
         next(err);
@@ -72,7 +63,7 @@ export function createProductosController(
     delete: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
         const id = Number(req.params.id);
-        await service.delete(id, getAuditContext(req));
+        await service.delete(id, buildAuditContext(req));
         res.status(204).send();
       } catch (err) {
         next(err);
@@ -83,7 +74,7 @@ export function createProductosController(
       try {
         const productoId = Number(req.params.id);
         const categoriaId = Number(req.body.categoriaid);
-        await service.assignCategoria(productoId, categoriaId, getAuditContext(req));
+        await service.assignCategoria(productoId, categoriaId, buildAuditContext(req));
         res.status(204).send();
       } catch (err) {
         next(err);
@@ -94,7 +85,7 @@ export function createProductosController(
       try {
         const productoId = Number(req.params.id);
         const categoriaId = Number(req.params.categoriaid);
-        await service.removeCategoria(productoId, categoriaId, getAuditContext(req));
+        await service.removeCategoria(productoId, categoriaId, buildAuditContext(req));
         res.status(204).send();
       } catch (err) {
         next(err);

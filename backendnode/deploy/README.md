@@ -13,40 +13,42 @@ This directory contains hardened, non-interactive, idempotent deployment templat
    vagrant up --provider=libvirt
    ./make-certs.sh
    ```
-2. Create a gitignored `backendnode/deploy/.env.deploy` (never commit this file) with your generated secrets:
+2. Create a gitignored `backendnode/deploy/.env.deploy` (never commit this file) with your generated secrets (avoid `\`, quotes, `#`, and whitespace):
    ```bash
    DB_ROOT_PASSWORD=<strong-root-password>
    DB_APP_PASSWORD=<strong-app-password>
    DB_PASSWORD=<same-strong-app-password>
    JWT_SECRET=<70-char-hex-from-npm-run-setup-env>
-   DB_DATABASE=dima_db
+   DB_DATABASE=mercadolibrenode
    DB_USER=dima_app
    ```
 3. Copy `frontendnet/deploy/certs/api.dima.lab.{crt,key}` and `dima-lab-ca.crt` into `backendnode/deploy/certs/` (gitignored).
 
 ### One-Command Provisioning per VM
 
+Prefer the staged orchestrator `frontendnet/deploy/deploy-all.sh`, which builds minimal per-role bundles (without `node_modules`, developer `.env` files, or `DB_ROOT_PASSWORD` on `api`) and cleans up `/tmp` after installation. If provisioning manually:
+
 **1. Provision `db` (`10.10.10.30`):**
+Stage only `db/SCHEMA.sql`, `deploy/install-db.sh`, `deploy/backup-db.*`, and `deploy/.env.deploy` (with `DB_ROOT_PASSWORD` + `DB_APP_PASSWORD`), run `install-db.sh`, then delete the staged `/tmp` folder:
 ```bash
-vagrant upload backendnode /tmp/backendnode db
-vagrant ssh db -c "sudo bash /tmp/backendnode/deploy/install-db.sh"
+vagrant ssh db -c "sudo bash /tmp/db-bundle/deploy/install-db.sh && sudo rm -rf /tmp/db-bundle"
 ```
 
 **2. Provision `api` (`10.10.10.20`):**
+Stage only `package.json`, `package-lock.json`, `dist/` (or `src/` + `tsconfig.json`), `deploy/install-api.sh`, `deploy/backendnode.service`, `deploy/nginx-api.conf`, `deploy/certs/`, and an `api`-only `.env.deploy` (with `DB_PASSWORD` + `JWT_SECRET` only — **never** `DB_ROOT_PASSWORD`), run `install-api.sh`, then delete the staged `/tmp` folder:
 ```bash
-vagrant upload backendnode /tmp/backendnode api
-vagrant ssh api -c "sudo bash /tmp/backendnode/deploy/install-api.sh"
+vagrant ssh api -c "sudo bash /tmp/api-bundle/deploy/install-api.sh && sudo rm -rf /tmp/api-bundle"
 ```
 
-**3. Seed once (only before production traffic, while `NODE_ENV=development`):**
+**3. Bootstrap production roles, catalog, and protected Administrador (under `NODE_ENV=production`):**
+Provide strong operator credentials via `ADMIN_EMAIL` and `ADMIN_PASSWORD` (validated against `StrongPasswordSchema` — never uses hardcoded dev seed credentials):
 ```bash
-vagrant ssh api -c "sudo -u backendnode NODE_ENV=development node --env-file=/etc/backendnode/backendnode.env /opt/backendnode/dist/db/seed.js || true"
+vagrant ssh api -c "sudo -u backendnode ADMIN_EMAIL='admin@dima.lab' ADMIN_PASSWORD='<strong-admin-password>' node --env-file=/etc/backendnode/backendnode.env /opt/backendnode/dist/db/bootstrap.js"
 ```
-*(Or run `npm run db:seed` from a temporary dev shell before locking `NODE_ENV=production`.)*
 
 ### Production Firewall & Bind Defaults
-- **`db` (`10.10.10.30`)**: `mysqld` binds to `10.10.10.30:3306`; `ufw` allows `22/tcp` and `3306/tcp` **only from `10.10.10.20` (`api`)**.
-- **`api` (`10.10.10.20`)**: `backendnode` binds to `127.0.0.1:3000` (`HOST=127.0.0.1`); `nginx` listens on `443` only (no port `80`); `ufw` allows `22/tcp` and `443/tcp` **only from `10.10.10.10` (`web`)**.
+- **`db` (`10.10.10.30`)**: `mysqld` binds to `10.10.10.30:3306`; `ufw` allows `22/tcp` from `MGMT_CIDR` (`10.10.10.0/24` + active SSH peer) and `3306/tcp` **only from `10.10.10.20` (`api`)**.
+- **`api` (`10.10.10.20`)**: `backendnode` binds to `127.0.0.1:3000` (`HOST=127.0.0.1`); `nginx` listens on `443` only (no port `80`); `ufw` allows `22/tcp` from `MGMT_CIDR` (`10.10.10.0/24` + active SSH peer) and `443/tcp` **only from `10.10.10.10` (`web`)**.
 - **Nightly backups**: `backup-db.timer` runs `backup-db.sh` daily at `02:00`, storing `0600` `.sql.gz` dumps in `/var/backups/dima` with 7-day retention using `/etc/dima/backup.cnf` (`0600`).
 
 ---

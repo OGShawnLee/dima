@@ -1,7 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
-import requestIp from 'request-ip';
 import { ClaimTypes } from '../config/claimtypes';
-import type { AuditContext } from '../schemas/common.schema';
+import { buildAuditContext } from '../middlewares/bitacora.middleware';
 import { pedidosService, type IPedidosService } from '../services/pedidos.service';
 import { notFound, unauthorized } from '../utils/httpError';
 
@@ -10,13 +9,6 @@ export interface PedidosController {
   getMine: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   getAll: (req: Request, res: Response, next: NextFunction) => Promise<void>;
   getById: (req: Request, res: Response, next: NextFunction) => Promise<void>;
-}
-
-function getAuditContext(req: Request): AuditContext {
-  return {
-    ip: requestIp.getClientIp(req) ?? 'unknown',
-    actorEmail: req.decodedToken?.[ClaimTypes.Name] ?? 'invitado',
-  };
 }
 
 export function createPedidosController(
@@ -30,7 +22,7 @@ export function createPedidosController(
           next(unauthorized());
           return;
         }
-        const created = await service.create(req.body, actorEmail, getAuditContext(req));
+        const created = await service.create(req.body, actorEmail, buildAuditContext(req));
         res.status(201).json(created);
       } catch (err) {
         next(err);

@@ -153,15 +153,32 @@ export const SEED_USERS = [
   },
 ] as const;
 
-export function assertSeedAllowed(nodeEnv: string): void {
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+
+export interface RunSeedOptions {
+  dbHost?: string;
+  allowRemoteDevSeed?: boolean;
+}
+
+export function assertSeedAllowed(
+  nodeEnv: string,
+  dbHost = 'localhost',
+  allowRemoteDevSeed = false,
+): void {
   if (nodeEnv === 'production') {
     throw new Error('Seeding is disabled in production environment.');
   }
+  const normalizedHost = dbHost.trim().toLowerCase();
+  if (!LOOPBACK_HOSTS.has(normalizedHost) && !allowRemoteDevSeed) {
+    throw new Error(
+      `Refusing to run dev seed against non-loopback DB_HOST "${dbHost}" without --allow-remote-dev-seed.`,
+    );
+  }
 }
 
-export async function runSeed(dbClient: DbClient, nodeEnv: string): Promise<void> {
-  assertSeedAllowed(nodeEnv);
-
+export async function seedRolesAndCatalog(
+  dbClient: DbClient,
+): Promise<Map<(typeof SEED_ROLES)[number], string>> {
   const roleIdByName = new Map<(typeof SEED_ROLES)[number], string>();
 
   for (const roleName of SEED_ROLES) {
@@ -185,49 +202,6 @@ export async function runSeed(dbClient: DbClient, nodeEnv: string): Promise<void
         .where(eq(rol.nombre, roleName))
         .limit(1);
       roleIdByName.set(roleName, resolved[0]?.id ?? id);
-    }
-  }
-
-  for (const userSeed of SEED_USERS) {
-    const rolid = roleIdByName.get(userSeed.rol);
-    if (!rolid) {
-      throw new Error(`Missing seeded role: ${userSeed.rol}`);
-    }
-
-    const existingUser = await dbClient
-      .select({ id: usuario.id })
-      .from(usuario)
-      .where(eq(usuario.email, userSeed.email))
-      .limit(1);
-
-    if (existingUser.length === 0) {
-      const passwordhash = await bcrypt.hash('patito', 10);
-      await dbClient
-        .insert(usuario)
-        .values({
-          id: crypto.randomUUID(),
-          email: userSeed.email,
-          passwordhash,
-          nombre: userSeed.nombre,
-          protegido: userSeed.protegido,
-          rolid,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            nombre: userSeed.nombre,
-            protegido: userSeed.protegido,
-            rolid,
-          },
-        });
-    } else {
-      await dbClient
-        .update(usuario)
-        .set({
-          nombre: userSeed.nombre,
-          protegido: userSeed.protegido,
-          rolid,
-        })
-        .where(eq(usuario.email, userSeed.email));
     }
   }
 
@@ -279,11 +253,71 @@ export async function runSeed(dbClient: DbClient, nodeEnv: string): Promise<void
         },
       });
   }
+
+  return roleIdByName;
+}
+
+export async function runSeed(
+  dbClient: DbClient,
+  nodeEnv: string,
+  options?: RunSeedOptions,
+): Promise<void> {
+  assertSeedAllowed(
+    nodeEnv,
+    options?.dbHost ?? 'localhost',
+    options?.allowRemoteDevSeed ?? false,
+  );
+
+  const roleIdByName = await seedRolesAndCatalog(dbClient);
+
+  for (const userSeed of SEED_USERS) {
+    const rolid = roleIdByName.get(userSeed.rol);
+    if (!rolid) {
+      throw new Error(`Missing seeded role: ${userSeed.rol}`);
+    }
+
+    const existingUser = await dbClient
+      .select({ id: usuario.id })
+      .from(usuario)
+      .where(eq(usuario.email, userSeed.email))
+      .limit(1);
+
+    if (existingUser.length === 0) {
+      const passwordhash = await bcrypt.hash('patito', 10);
+      await dbClient
+        .insert(usuario)
+        .values({
+          id: crypto.randomUUID(),
+          email: userSeed.email,
+          passwordhash,
+          nombre: userSeed.nombre,
+          protegido: userSeed.protegido,
+          rolid,
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            nombre: userSeed.nombre,
+            protegido: userSeed.protegido,
+            rolid,
+          },
+        });
+    } else {
+      await dbClient
+        .update(usuario)
+        .set({
+          nombre: userSeed.nombre,
+          protegido: userSeed.protegido,
+          rolid,
+        })
+        .where(eq(usuario.email, userSeed.email));
+    }
+  }
 }
 
 if (require.main === module) {
   const env = getEnv();
-  runSeed(getDb(), env.NODE_ENV)
+  const allowRemoteDevSeed = process.argv.includes('--allow-remote-dev-seed');
+  runSeed(getDb(), env.NODE_ENV, { dbHost: env.DB_HOST, allowRemoteDevSeed })
     .then(async () => {
       console.log('Database seeded successfully.');
       await closeDb();

@@ -180,19 +180,46 @@ export async function runSetupDb(options = {}) {
 
   const schemaSql = fs.readFileSync(schemaPath, 'utf8');
 
-  // 1. Apply static SCHEMA.sql with multipleStatements: true
+  // 1. Ensure target database exists and check for legacy SequelizeMeta
   const ddlConnection = await mysql.createConnection({
     host: dbHost,
     port: dbPort,
     user: 'root',
     password: rootPassword,
+    multipleStatements: false,
+  });
+
+  try {
+    await ddlConnection.query(
+      `CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+    );
+    const [legacyRows] = await ddlConnection.query(
+      'SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = ? AND table_name = ?',
+      [dbName, 'SequelizeMeta'],
+    );
+    if (Array.isArray(legacyRows) && legacyRows.length > 0) {
+      throw new Error(
+        `Database "${dbName}" contains a legacy SequelizeMeta table (incompatible utf8mb4_bin/utf8mb4_0900_ai_ci schema). Run: DROP DATABASE \`${dbName}\`; then re-run: npm run setup:db -- --seed`,
+      );
+    }
+  } finally {
+    await ddlConnection.end();
+  }
+
+  // 2. Apply static SCHEMA.sql into target database with multipleStatements: true
+  const schemaConnection = await mysql.createConnection({
+    host: dbHost,
+    port: dbPort,
+    user: 'root',
+    password: rootPassword,
+    database: dbName,
     multipleStatements: true,
   });
 
   try {
-    await ddlConnection.query(schemaSql);
+    await schemaConnection.query(schemaSql);
   } finally {
-    await ddlConnection.end();
+    await schemaConnection.end();
   }
 
   // 2. Apply validated user and least-privilege grants with multipleStatements: false
