@@ -16,7 +16,7 @@
     function actualiza() {
         var opcion = select.options[select.selectedIndex];
         var id = opcion ? opcion.value : '';
-        if (!/^[1-9][0-9]*$/.test(id)) {
+        if (!/^[1-9]\d*$/.test(id)) {
             img.src = placeholder;
             return;
         }

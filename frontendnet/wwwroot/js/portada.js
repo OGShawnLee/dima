@@ -10,7 +10,7 @@
     }
 
     var error = document.getElementById('portadaError');
-    var maxSize = parseInt(input.dataset.maxSize, 10) || 102400;
+    var maxSize = Number.parseInt(input.dataset.maxSize, 10) || 102400;
     var placeholder = img.dataset.placeholder || img.src;
 
     function muestraError(mensaje) {
@@ -28,7 +28,7 @@
     }
 
     input.addEventListener('change', function () {
-        var file = input.files && input.files[0];
+        var file = input.files?.[0];
         if (!file) {
             restablece('');
             return;
@@ -52,7 +52,7 @@
         muestraError('');
         var reader = new FileReader();
         reader.addEventListener('load', function () {
-            if (typeof reader.result === 'string' && reader.result.indexOf('data:image/jpeg') === 0) {
+            if (typeof reader.result === 'string' && reader.result.startsWith('data:image/jpeg')) {
                 img.src = reader.result;
             }
         });
