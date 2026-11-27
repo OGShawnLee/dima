@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Lane | Spec |
 | :--- | :--- | :--- | :--- | :--- |
-| `F001` | `draft` | Strong coding model (T3 "Frontend" lane) | Front | [spec.md](spec.md) |
+| `F001` | `implemented` | Strong coding model (T3 "Frontend" lane) | Front | [spec.md](spec.md) |
 
 ## Items addressed
 - FRONTEND-API-SPEC §2–§4, §6, §7 (Auth/Perfil), §9; PDF fixes #1, #3, #5, #7, #11.

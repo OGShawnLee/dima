@@ -11,10 +11,10 @@
 ## Requested backend contract (to be confirmed in `.routing/FRONT-HANDOFF.md`)
 | Method | Path | Role | Body / Result |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/registro` | public, rate-limited | `{ email, nombre, password }` → `201 { email, nombre, rol: "Usuario" }` |
+| `POST` | `/api/auth/registro` | public, rate-limited | `{ email, nombre, password }` → `201 { id, email, nombre, rol: "Usuario" }`; `400` (`detalles`), `409` duplicate, `429` |
 | `POST` | `/api/pedidos` | `Usuario` | `{ items: [{ productoId, cantidad }] }` → `201 { pedidoId, total, fecha, estado }` |
-| `GET` | `/api/pedidos/mios` | `Usuario` | own orders |
-| `GET` | `/api/pedidos` | `Administrador` | all orders with customer email |
+| `GET` | `/api/pedidos/mios` | `Usuario` | `[{ pedidoId, total, fecha, estado, itemCount }]` |
+| `GET` | `/api/pedidos` | `Administrador` | `[{ pedidoId, usuarioEmail, usuarioNombre, total, fecha, estado, itemCount }]` |
 | `GET` | `/api/pedidos/{id}` | owner or `Administrador` | order + lines (`titulo`, `precioUnitario`, `cantidad`) |
 
 If the final contract differs, follow the backend (`/openapi.json`) and update this table.

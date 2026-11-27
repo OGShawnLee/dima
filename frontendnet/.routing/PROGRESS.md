@@ -6,19 +6,19 @@
 
 - **Phase:** Planning complete — implementation starts `2026-11-26`.
 - **Hard deadline:** **2026-11-27 13:00 (America/Mexico_City)** — frontend complete **and** 3-server deployment passing the rubric's 7 live tests.
-- **Blocked on backend:** `F007` (registration / orders endpoints) — requested in [BACK-HANDOFF.md](BACK-HANDOFF.md).
+- **Backend status:** `B009`–`B011` merged on `main` (registration, `/api/pedidos`, proxy/host/remote-DB) — `F007` is **unblocked** (see `.routing/FRONT-HANDOFF.md` 2026-11-26). Local DB must re-apply `SCHEMA.sql` before F007 smoke tests.
 
 ## Ticket Board
 
 | Ticket | Title | Status | Lane | Depends on | Audit |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `F001` | MVC scaffold, BFF auth bridge, layout | `draft` | Front | backend running locally | — |
+| `F001` | MVC scaffold, BFF auth bridge, layout | `implemented` (merged to local `main` @ `44379ae`, not pushed) | Front | backend running locally | — |
 | `F002` | Categorías CRUD | `draft` | Front | F001 | — |
 | `F003` | Archivos CRUD + BFF image proxy | `draft` | Front | F001 | — |
 | `F004` | Productos CRUD + categories M:N | `draft` | Front | F002, F003 | — |
 | `F005` | Usuarios CRUD + Bitácora | `draft` | Front | F001 | — |
 | `F006` | Comprar catalog + session cart | `draft` | Front | F004 | — |
-| `F007` | Self-registration + checkout + orders (customer & admin) | `draft` (blocked) | Front | F006 + backend endpoints | — |
+| `F007` | Self-registration + checkout + orders (customer & admin) | `draft` | Front | F006 + backend endpoints | — |
 | `F008` | Production hardening + 3-server deployment | `draft` | Front/Ops | F001–F006 (F007 if ready) | — |
 
 `F002`, `F003`, and `F005` touch disjoint files and can run in **parallel worktrees** once `F001` is merged.
@@ -45,6 +45,16 @@
 | Seguridad: client validation, auth in frontend, cookies, session refresh/expiry, 80 closed, strong passwords | F001, F007, F008 |
 | Uso de servidores: 3 servers, reverse proxy, services, firewall | F008 |
 | Pruebas: 1 client validation, 3 private sections, 5 auto-start on reboot, 6 JWT refresh, 7 netstat | F001, F008 |
+
+## Router Verification Log
+
+- 2026-11-26 — `F001` @ `44379ae` verified by router: Release build 0 warnings / 0 errors; no `async void`; global `AutoValidateAntiforgeryTokenAttribute` (`POST /Auth` without token → `400`); no `Html.Raw`; `net10.0`; `IniciaSesionAsync` returns `Task` and is awaited; no secrets in `appsettings*.json`; scope ⊆ ticket. Live smoke (https profile): generic login error, admin → `/Productos`, `/Perfil` shows claims + `/api/auth/tiempo`, cookie `secure; samesite=strict; httponly`, CSP / `nosniff` / `DENY` / `Referrer-Policy` present, **session survives backend restart**, tampered cookie and anonymous → `/Auth`, `/Auth/Salir` expires the cookie. Worker evidence accepted for JWT sliding refresh, expired JWT → `/Auth/Salir`, Production hides raw JWT, `X-Forwarded-For` visible in `bitacora`.
+
+## Notes for Later Tickets (from F001)
+
+- Cart badge reads session key `CarritoCantidad` — `F006` must keep it updated.
+- `RefrescaTokenDelegatingHandler` turns any non-2xx into `HttpRequestException` with `StatusCode`; branch on `ex.StatusCode` (e.g. `409` in `F007`, `400` in `F005`) — response bodies (`detalles`) are not readable through these clients.
+- `Usuario` login redirects to `/` (Home); HSTS is suppressed on `localhost` by ASP.NET Core defaults.
 
 ## Completed
 
