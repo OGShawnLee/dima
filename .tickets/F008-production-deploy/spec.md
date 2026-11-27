@@ -11,6 +11,8 @@
 - [ ] `systemctl is-enabled frontendnet nginx` → `enabled`; `Restart=always`.
 - [ ] Reboot all three VMs → app works without manual steps (rubric test 5).
 - [ ] `kill -9` the Kestrel PID → systemd restarts it within 5 s.
+- [ ] `db`: `systemctl list-timers backup-db.timer` active; one manual run leaves a `0600` dump in `/var/backups/dima`.
+- [ ] VMs survive deletion of the F008 worktree (`VAGRANT_DOTFILE_PATH` outside the repo, `default_prefix = "dima_"`).
 
 ## Security
 - [ ] HTTPS with the lab CA trusted in the browser; HSTS header present.
@@ -18,6 +20,12 @@
 - [ ] Cookie `.frontendnet` has `Secure; HttpOnly; SameSite=Strict`.
 - [ ] Data Protection keys in `/var/lib/frontendnet/keys` (mode `700`, owner `frontendnet`); restarting `frontendnet` keeps users logged in.
 - [ ] nginx and app logs written; failed logins visible in Bitácora with the **browser's** IP.
+- [ ] 11 failed logins for one email from one browser do not lock out a different user (backend `${ip}:${email}` limiter, `DEC-016`).
+- [ ] `git status` clean of secrets: `certs/`, `out/`, `.env.deploy`, `.vagrant/` ignored; no secret in `appsettings*.json` or unit files.
+
+## End-to-end (from the host browser at `https://web.dima.lab`)
+- [ ] Admin: CRUD category, upload image, product with cover, view orders, Bitácora.
+- [ ] Usuario: self-register, add to cart, checkout, see the order in Mis pedidos.
 
 ## Rubric live tests
 1. [ ] Client validation blocks invalid forms.
