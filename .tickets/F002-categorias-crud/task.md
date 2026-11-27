@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Lane | Spec |
 | :--- | :--- | :--- | :--- | :--- |
-| `F002` | `draft` | Fast coding model (parallel worktree) | Front | [spec.md](spec.md) |
+| `F002` | `implemented` | Fast coding model (parallel worktree) | Front | [spec.md](spec.md) |
 
 ## Items addressed
 - FRONTEND-API-SPEC §5 (`Categoria`), §7 (`CategoriasClientService`), §8 (`CategoriasController`); PDF fixes #8, #11.
