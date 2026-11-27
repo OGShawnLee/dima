@@ -1,9 +1,11 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
 import { getEnv } from '../config/env';
 import { closeDb, getDb, type DbClient } from './index';
-import { categoria, categoriaproducto, producto, rol, usuario } from './schema';
+import { archivo, categoria, categoriaproducto, producto, rol, usuario } from './schema';
 
 export const SEED_ROLES = ['Administrador', 'Usuario'] as const;
 
@@ -158,6 +160,9 @@ const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 export interface RunSeedOptions {
   dbHost?: string;
   allowRemoteDevSeed?: boolean;
+  filesInDb?: boolean;
+  uploadsDir?: string;
+  assetsDir?: string;
 }
 
 export function assertSeedAllowed(
@@ -257,6 +262,89 @@ export async function seedRolesAndCatalog(
   return roleIdByName;
 }
 
+/**
+ * Idempotently attaches default cover images from db/seed-assets/ to seeded products.
+ */
+export async function seedProductImages(
+  dbClient: DbClient,
+  options?: Pick<RunSeedOptions, 'filesInDb' | 'uploadsDir' | 'assetsDir'>,
+): Promise<void> {
+  const filesInDb = options?.filesInDb ?? false;
+  const backendRoot = path.resolve(__dirname, '..', '..');
+  const assetsDir = options?.assetsDir ?? path.join(backendRoot, 'db', 'seed-assets');
+  const uploadsDir = options?.uploadsDir ?? path.join(backendRoot, 'uploads');
+
+  if (!fs.existsSync(assetsDir)) {
+    return;
+  }
+
+  for (const prod of SEED_PRODUCTOS) {
+    const assetPath = path.join(assetsDir, `producto-${prod.id}.jpg`);
+    if (!fs.existsSync(assetPath)) {
+      continue;
+    }
+
+    const existingProd = await dbClient
+      .select({ archivoid: producto.archivoid })
+      .from(producto)
+      .where(eq(producto.id, prod.id))
+      .limit(1);
+
+    const currentArchivoId = existingProd[0]?.archivoid ?? null;
+    if (currentArchivoId !== null) {
+      const existingArchivo = await dbClient
+        .select({ id: archivo.id, nombre: archivo.nombre, indb: archivo.indb })
+        .from(archivo)
+        .where(eq(archivo.id, currentArchivoId))
+        .limit(1);
+
+      if (existingArchivo.length > 0) {
+        if (!existingArchivo[0].indb) {
+          const targetPath = path.join(uploadsDir, existingArchivo[0].nombre);
+          if (!fs.existsSync(targetPath)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+            fs.copyFileSync(assetPath, targetPath);
+          }
+        }
+        continue;
+      }
+    }
+
+    const buffer = fs.readFileSync(assetPath);
+    let insertedId: number | undefined;
+
+    if (filesInDb) {
+      const [result] = await dbClient.insert(archivo).values({
+        mime: 'image/jpeg',
+        nombre: `producto-${prod.id}.jpg`,
+        size: buffer.length,
+        indb: true,
+        datos: buffer,
+      });
+      insertedId = result.insertId;
+    } else {
+      const diskName = `${crypto.randomUUID()}.jpg`;
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      fs.writeFileSync(path.join(uploadsDir, diskName), buffer);
+      const [result] = await dbClient.insert(archivo).values({
+        mime: 'image/jpeg',
+        nombre: diskName,
+        size: buffer.length,
+        indb: false,
+        datos: null,
+      });
+      insertedId = result.insertId;
+    }
+
+    if (insertedId && insertedId > 0) {
+      await dbClient
+        .update(producto)
+        .set({ archivoid: insertedId })
+        .where(eq(producto.id, prod.id));
+    }
+  }
+}
+
 export async function runSeed(
   dbClient: DbClient,
   nodeEnv: string,
@@ -269,6 +357,7 @@ export async function runSeed(
   );
 
   const roleIdByName = await seedRolesAndCatalog(dbClient);
+  await seedProductImages(dbClient, options);
 
   for (const userSeed of SEED_USERS) {
     const rolid = roleIdByName.get(userSeed.rol);
@@ -317,7 +406,11 @@ export async function runSeed(
 if (require.main === module) {
   const env = getEnv();
   const allowRemoteDevSeed = process.argv.includes('--allow-remote-dev-seed');
-  runSeed(getDb(), env.NODE_ENV, { dbHost: env.DB_HOST, allowRemoteDevSeed })
+  runSeed(getDb(), env.NODE_ENV, {
+    dbHost: env.DB_HOST,
+    allowRemoteDevSeed,
+    filesInDb: env.FILES_IN_BD,
+  })
     .then(async () => {
       console.log('Database seeded successfully.');
       await closeDb();
