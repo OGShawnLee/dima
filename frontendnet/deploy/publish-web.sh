@@ -32,7 +32,8 @@ tar -C "$STAGE" -czf "$STAGE/dima-bundle.tgz" dima-bundle
 UP=/tmp/dima-upload-web
 vagrant ssh web -c "sudo rm -rf $UP && install -d -m 700 $UP"
 vagrant upload "$STAGE/dima-bundle.tgz" "$UP/dima-bundle.tgz" web
-vagrant ssh web -c "sudo bash -c 'set -euo pipefail
+# SSH_CONNECTION is forwarded explicitly (sudo's env_reset drops it) so install-web.sh can keep the current ssh peer.
+vagrant ssh web -c "sudo SSH_CONNECTION=\"\${SSH_CONNECTION:-}\" bash -c 'set -euo pipefail
   trap \"rm -rf /tmp/dima-bundle $UP\" EXIT
   rm -rf /tmp/dima-bundle && install -d -m 700 /tmp/dima-bundle
   tar --no-same-owner -C /tmp -xzf $UP/dima-bundle.tgz
