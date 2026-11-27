@@ -1,0 +1,19 @@
+@model Producto
+@{
+    ViewData["Title"] = "Nuevo producto";
+}
+<h1 class="h3 mb-4"><i class="bi bi-plus-lg"></i> Nuevo producto</h1>
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form asp-action="Crear" method="post">
+            <partial name="_FormularioPartial" model="Model" />
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Guardar</button>
+            <a class="btn btn-outline-secondary" asp-action="Index">Cancelar</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/producto_portada.js" asp-append-version="true"></script>
+}

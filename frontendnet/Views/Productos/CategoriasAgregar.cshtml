@@ -1,0 +1,36 @@
+@model ProductoCategoria
+@{
+    ViewData["Title"] = "Agregar categoría";
+    var disponibles = ViewData["Categorias"] as List<Categoria> ?? [];
+    var producto = Model.Producto!;
+}
+<h1 class="h3 mb-1"><i class="bi bi-plus-lg"></i> Agregar categoría</h1>
+<p class="text-body-secondary text-break mb-4">@producto.ProductoId — @producto.Titulo</p>
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form asp-action="CategoriasAgregar" asp-route-id="@producto.ProductoId" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            <div class="mb-3">
+                <label asp-for="CategoriaId" class="form-label"></label>
+                <select asp-for="CategoriaId" class="form-select">
+                    <option value="">Seleccione una categoría</option>
+                    @foreach (var c in disponibles)
+                    {
+                        <option value="@c.CategoriaId">@c.Nombre</option>
+                    }
+                </select>
+                <span asp-validation-for="CategoriaId" class="text-danger small"></span>
+                @if (disponibles.Count == 0)
+                {
+                    <div class="form-text">El producto ya tiene asignadas todas las categorías.</div>
+                }
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Agregar</button>
+            <a class="btn btn-outline-secondary" asp-action="Categorias" asp-route-id="@producto.ProductoId">Cancelar</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

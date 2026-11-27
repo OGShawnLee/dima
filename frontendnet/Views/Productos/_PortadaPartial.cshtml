@@ -1,0 +1,16 @@
+@model Producto
+@* Cover thumbnail through the BFF image proxy (FDEC-002), with a ?v= cache-buster when known. *@
+@{
+    string? v = ViewData["v"] as string;
+    string clase = ViewData["clase"] as string ?? "img-thumbnail";
+    string ancho = ViewData["ancho"] as string ?? "80";
+}
+@if (Model.ArchivoId is int id)
+{
+    <img src="@Url.Action("Imagen", "Archivos", new { id, v })" alt="Portada de @Model.Titulo"
+         class="@clase" width="@ancho" loading="lazy" />
+}
+else
+{
+    <img src="https://placehold.co/300x200?text=Sin+portada" alt="Sin portada" class="@clase" width="@ancho" loading="lazy" />
+}

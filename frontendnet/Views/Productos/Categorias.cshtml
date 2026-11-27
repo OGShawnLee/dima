@@ -1,0 +1,44 @@
+@model Producto
+@{
+    ViewData["Title"] = "Categorías del producto";
+    var lista = Model.Categorias ?? [];
+}
+<h1 class="h3 mb-1"><i class="bi bi-tags"></i> Categorías del producto</h1>
+<p class="text-body-secondary text-break mb-4">@Model.ProductoId — @Model.Titulo</p>
+<partial name="_MensajesPartial" />
+
+@if (lista.Count == 0)
+{
+    <p class="text-body-secondary">Este producto no tiene categorías asignadas.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Id</th>
+                    <th scope="col">Nombre</th>
+                    <th scope="col" class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in lista)
+                {
+                    <tr>
+                        <td>@c.CategoriaId</td>
+                        <td class="text-break">@c.Nombre</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-danger" asp-action="CategoriasRemover"
+                               asp-route-id="@Model.ProductoId" asp-route-categoriaid="@c.CategoriaId" title="Quitar">
+                                <i class="bi bi-x-lg"></i> Quitar
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+<a class="btn btn-primary" asp-action="CategoriasAgregar" asp-route-id="@Model.ProductoId"><i class="bi bi-plus-lg"></i> Agregar categoría</a>
+<a class="btn btn-outline-secondary" asp-action="Detalle" asp-route-id="@Model.ProductoId"><i class="bi bi-arrow-left"></i> Regresar</a>
