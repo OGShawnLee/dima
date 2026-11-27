@@ -1,0 +1,17 @@
+@* Shared error page (F009): used by HomeController.Error (UseExceptionHandler) and by the global
+   ErrorServicioExceptionFilter (503). It never shows exception details; only a Spanish message and
+   the request id that ties the page to the server log. No inline scripts (CSP). *@
+@{
+    ViewData["Title"] ??= "Error";
+    var requestId = ViewData["RequestId"] as string;
+    var mensaje = ViewData["Mensaje"] as string ?? "Ocurrió un error al procesar la solicitud.";
+}
+<div class="text-center py-5">
+    <h1 class="display-5 text-danger"><i class="bi bi-exclamation-octagon"></i> @ViewData["Title"]</h1>
+    <p class="lead">@mensaje</p>
+    @if (!string.IsNullOrEmpty(requestId))
+    {
+        <p class="text-body-secondary small">Identificador de la solicitud: <code>@requestId</code></p>
+    }
+    <a class="btn btn-primary" href="~/"><i class="bi bi-house"></i> Volver al inicio</a>
+</div>

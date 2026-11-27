@@ -1,3 +1,4 @@
+using frontendnet.Filters;
 using frontendnet.Middlewares;
 using frontendnet.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -12,8 +13,26 @@ bool isDevelopment = builder.Environment.IsDevelopment();
 // (Secure under the https profile, still usable on the http profile).
 var cookieSecurePolicy = isDevelopment ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
 
-// MVC with antiforgery validation on every unsafe HTTP method (POST/PUT/DELETE).
-builder.Services.AddControllersWithViews(o => o.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
+// MVC with antiforgery validation on every unsafe HTTP method (POST/PUT/DELETE), a global safety
+// net for backend failures that controllers do not handle (F009) and Spanish model-binding messages.
+builder.Services.AddControllersWithViews(o =>
+{
+    o.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+    o.Filters.Add<ErrorServicioExceptionFilter>();
+
+    var m = o.ModelBindingMessageProvider;
+    m.SetAttemptedValueIsInvalidAccessor((valor, campo) => $"El valor '{valor}' no es válido para {campo}.");
+    m.SetMissingBindRequiredValueAccessor(campo => $"No se proporcionó un valor para {campo}.");
+    m.SetMissingKeyOrValueAccessor(() => "Se requiere un valor.");
+    m.SetMissingRequestBodyRequiredValueAccessor(() => "Se requiere el cuerpo de la solicitud.");
+    m.SetNonPropertyAttemptedValueIsInvalidAccessor(valor => $"El valor '{valor}' no es válido.");
+    m.SetNonPropertyUnknownValueIsInvalidAccessor(() => "El valor proporcionado no es válido.");
+    m.SetNonPropertyValueMustBeANumberAccessor(() => "El campo debe ser un número.");
+    m.SetUnknownValueIsInvalidAccessor(campo => $"El valor proporcionado no es válido para {campo}.");
+    m.SetValueIsInvalidAccessor(valor => $"El valor '{valor}' no es válido.");
+    m.SetValueMustBeANumberAccessor(campo => $"El campo {campo} debe ser un número.");
+    m.SetValueMustNotBeNullAccessor(valor => $"El valor '{valor}' no es válido.");
+});
 builder.Services.AddAntiforgery(o =>
 {
     o.Cookie.Name = ".frontendnet.af";
@@ -33,7 +52,22 @@ builder.Services.AddTransient<ReenviaIpDelegatingHandler>();
 string urlWebApi = builder.Configuration["UrlWebAPI"]
     ?? throw new InvalidOperationException("Missing configuration value 'UrlWebAPI'.");
 var baseAddress = new Uri(urlWebApi.TrimEnd('/') + "/");
-void ConfiguraCliente(HttpClient c) => c.BaseAddress = baseAddress;
+
+// Backend call timeout (F009). The HttpClient default (100 s) outlives nginx's default
+// proxy_read_timeout (60 s), so the user would get a bare 504 instead of the Spanish 503 page.
+// Overridable with UrlWebAPITimeoutSeconds (e.g. environment variable) for slow environments.
+int timeoutSegundos = builder.Configuration.GetValue("UrlWebAPITimeoutSeconds", 30);
+if (timeoutSegundos is < 1 or > 300)
+{
+    throw new InvalidOperationException("'UrlWebAPITimeoutSeconds' must be between 1 and 300.");
+}
+
+var timeout = TimeSpan.FromSeconds(timeoutSegundos);
+void ConfiguraCliente(HttpClient c)
+{
+    c.BaseAddress = baseAddress;
+    c.Timeout = timeout;
+}
 
 // Login is unauthenticated: only the IP-forwarding handler.
 builder.Services.AddHttpClient<AuthClientService>(ConfiguraCliente)

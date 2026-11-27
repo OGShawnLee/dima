@@ -159,6 +159,19 @@ public class ArchivosController(ArchivosClientService archivos, ILogger<Archivos
         {
             byte[] datos = await archivos.GetBinaryAsync(id);
             Response.Headers.XContentTypeOptions = "nosniff";
+
+            // F009: for a signed-in user the response may carry a re-issued .frontendnet cookie
+            // (the cookie's own sliding renewal today; a Set-Authorization refresh too if the backend
+            // ever puts auth on GET api/archivos/{id}). A shared cache (nginx, corporate proxy) must never
+            // store that, so authenticated responses are cached by the browser only ("private").
+            // Chosen over stripping Set-Cookie because dropping the refreshed cookie would leave the
+            // browser with the old JWT and silently break the sliding session. Anonymous responses
+            // carry no session cookie and stay "public, max-age=300" from [ResponseCache].
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                Response.Headers.CacheControl = "private, max-age=300";
+            }
+
             return File(datos, "image/jpeg");
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest)
