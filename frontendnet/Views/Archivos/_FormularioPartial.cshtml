@@ -1,0 +1,23 @@
+@model Upload
+@{
+    string? actual = Model.ArchivoId is int id
+        ? Url.Action("Imagen", "Archivos", new { id, v = Model.Nombre })
+        : null;
+}
+<div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+<div class="row g-4">
+    <div class="col-md-7">
+        <div class="mb-3">
+            <label asp-for="Portada" class="form-label"></label>
+            <input asp-for="Portada" type="file" class="form-control" accept="image/jpeg,.jpg,.jpeg"
+                   data-max-size="@frontendnet.Controllers.ArchivosController.TamanoMaximo" />
+            <div class="form-text">Solo imágenes JPG de hasta 100 KB.</div>
+            <span asp-validation-for="Portada" class="text-danger small" id="portadaError"></span>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <img src="@(actual ?? "https://placehold.co/300x200?text=Vista+previa")"
+             data-placeholder="@(actual ?? "https://placehold.co/300x200?text=Vista+previa")"
+             alt="Vista previa" class="portada img-fluid rounded border" />
+    </div>
+</div>

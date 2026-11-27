@@ -1,0 +1,21 @@
+@model Archivo
+<div class="row g-4">
+    <div class="col-md-5">
+        <img src="@Url.Action("Imagen", "Archivos", new { id = Model.ArchivoId, v = Model.Nombre })"
+             alt="Imagen @Model.ArchivoId" class="img-fluid rounded border" />
+    </div>
+    <div class="col-md-7">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">@Html.DisplayNameFor(m => m.ArchivoId)</dt>
+            <dd class="col-sm-8">@Model.ArchivoId</dd>
+            <dt class="col-sm-4">@Html.DisplayNameFor(m => m.Nombre)</dt>
+            <dd class="col-sm-8 text-break">@Model.Nombre</dd>
+            <dt class="col-sm-4">@Html.DisplayNameFor(m => m.Mime)</dt>
+            <dd class="col-sm-8">@Model.Mime</dd>
+            <dt class="col-sm-4">@Html.DisplayNameFor(m => m.Size)</dt>
+            <dd class="col-sm-8">@Model.Size bytes</dd>
+            <dt class="col-sm-4">@Html.DisplayNameFor(m => m.InDb)</dt>
+            <dd class="col-sm-8">@(Model.InDb ? "Base de datos" : "Disco")</dd>
+        </dl>
+    </div>
+</div>
