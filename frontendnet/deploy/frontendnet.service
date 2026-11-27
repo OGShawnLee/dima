@@ -10,7 +10,7 @@ Group=frontendnet
 WorkingDirectory=/opt/frontendnet
 ExecStart=/opt/frontendnet/frontendnet
 Restart=always
-RestartSec=5
+RestartSec=2
 KillSignal=SIGINT
 SyslogIdentifier=frontendnet
 

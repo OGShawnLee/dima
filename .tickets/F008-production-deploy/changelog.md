@@ -57,3 +57,32 @@ $ git status --ignored   -> only tracked deploy files modified; no certs/, out/,
 5. **Seed command in README ends with `|| true`**, hiding seeding failures; and the seeder creates `gvera@uv.mx` / `patito@uv.mx` with password `patito` in the production DB — change these passwords after the demo (F009 / audit note).
 6. **MySQL bound to `10.10.10.30`** while `mysql.service` only orders after `network.target`: after a reboot mysqld can start before the private interface has its address and fail to bind. Suggest a drop-in `After=network-online.target` / `Wants=network-online.target` (verify in the step-B reboot drill).
 7. Minor: `install-db.sh` sets the root password only while socket auth still works; rotating `DB_ROOT_PASSWORD` later silently desyncs `/etc/dima/backup.cnf`. `DB_SSL=false` by default (DB traffic in clear on the isolated lab network).
+
+## Step B — deployed on libvirt (2026-11-27, `DIMA_BOX=cloud-image/ubuntu-24.04`)
+
+### Defects found during deploy
+- **NEW backend issue (REQ-011 candidate): `install-db.sh` writes `/etc/mysql/mysql.conf.d/99-dima.cnf`.** MySQL reads that dir alphabetically, so on Ubuntu 24.04 `mysqld.cnf` (`bind-address = 127.0.0.1`) loads *after* it and wins: `3306` stayed on loopback and `seed` failed with `ECONNREFUSED 10.10.10.30:3306`. Hot-fixed on the live `db` VM (`mv 99-dima.cnf zz-dima.cnf`, restart). Script fix (backend-owned): name it `zz-dima.cnf`.
+- **Fixed (frontend) `install-web.sh`:** `cp -a "$BUNDLE/frontendnet/." "$APP_DIR"` copied the 700 bundle-dir mode onto `/opt/frontendnet`, so the service user got `CHDIR Permission denied` (restart loop, nginx 502). Now `chmod 755 "$APP_DIR"` + `go+rX`.
+- **Fixed (frontend) nginx `/Auth` throttle:** 10r/m burst 5 per IP made a 6th quick failed login return 429 for *every* user behind that IP (spec: 11 failures for one email must not lock out another user). Now a coarse flood guard (30r/m, burst 20); per-email limiting stays with the backend (DEC-016).
+- **Fixed (frontend):** `install-web.sh` smoke checks used `curl … && echo`, which `set -e` ignores, so 502s still exited 0. Now explicit `|| { …; exit 1; }`.
+- **Fixed (frontend):** `frontendnet.service` `RestartSec=5` → `2`; re-run `kill -9` → new PID after ~3 s, `/` returns 200 (spec: within 5 s).
+
+### Evidence (all executed from the host)
+- Topology: web listeners only 22/443 (+ Kestrel 127.0.0.1:5000); api 3000 on 127.0.0.1, ufw 443 only from 10.10.10.10; db 3306 on 10.10.10.30, ufw only from 10.10.10.20; `dima_app` has `SELECT, INSERT, UPDATE, DELETE` on `mercadolibrenode.*` only.
+- Host: `curl -k https://api.dima.lab` → 000, `nc -zv 10.10.10.30 3306` → timeout, `http://web.dima.lab` → no response (80 closed).
+- Headers: HSTS, CSP, `nosniff`, `X-Frame-Options: DENY`; `server: nginx` (no version). Cookie `.frontendnet` = `secure; samesite=strict; httponly`.
+- Services: `frontendnet`/`nginx` enabled, `Restart=always`; `kill -9` Kestrel → new PID answering 200 ~6 s later (initial RestartSec=5, borderline; after change to 2 → ~3 s).
+- Keys `/var/lib/frontendnet/keys` `700 frontendnet`; session cookie still valid after `systemctl restart frontendnet` and after rebooting all 3 VMs.
+- Backup: manual `backup-db.service` run → `-rw------- root mercadolibrenode-20261127-070149.sql.gz`; `backup-db.timer` enabled (02:00).
+- Roles: anonymous → `/Auth?ReturnUrl`; `patito` → `/Home/AccessDenied`; admin `/Categorias` + `/Bitacora` 200. Bitácora shows `usuario.login.fallido` with `10.10.10.1` (browser/host IP).
+- Limiter: 12 failed logins for one email → all 200; `patito` then logs in (302).
+- API rejects invalid input directly from `web` (`POST /api/auth` bad body → 400).
+- Reboot of web+api+db (boot 07:03:21–24): all services active, DB bound to 10.10.10.30, API health ok, login works, old session valid.
+
+### Not yet verified
+- Browser E2E (admin CRUD/upload, Usuario register→cart→checkout→Mis pedidos), client-side validation, JWT refresh (`Set-Authorization` re-issue), browser trust of the lab CA, worktree-deletion survival (by design only).
+
+### Update 2026-11-27 (db rebuilt from fixed script)
+- Backend fix committed as `e0668de` (`zz-dima.cnf`). `deploy-all.sh` deploys committed `HEAD` (git archive), so it must be committed before a rebuild.
+- `db` VM destroyed and rebuilt from the committed script: `/etc/mysql/mysql.conf.d/` has `zz-dima.cnf`, `3306` listens on `10.10.10.30`.
+- Re-seeded with `DIMA_RESEED=1 ./deploy-all.sh seed` (marker on `api` makes plain `seed` skip): 2 users, 15 products. Admin login 302 → `/Productos` 200.

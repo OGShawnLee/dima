@@ -37,7 +37,8 @@ rm -rf "$APP_DIR"
 install -d -o root -g root -m 755 "$APP_DIR"
 cp -a "$BUNDLE/frontendnet/." "$APP_DIR"/
 chown -R root:root "$APP_DIR"
-chmod -R go-w "$APP_DIR"
+chmod -R go-w,go+rX "$APP_DIR"
+chmod 755 "$APP_DIR"   # cp -a copies the 700 bundle dir mode over $APP_DIR; the service user must traverse it
 chmod 755 "$APP_DIR/frontendnet"
 
 # 4. systemd unit (StateDirectory creates /var/lib/frontendnet 0700 frontendnet; keys live in .../keys)
@@ -73,8 +74,10 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 systemctl is-active frontendnet nginx
-curl -fsS http://127.0.0.1:5000/health && echo " <- Kestrel OK"
-curl -fsS --resolve web.dima.lab:443:127.0.0.1 https://web.dima.lab/health && echo " <- nginx TLS OK"
+curl -fsS http://127.0.0.1:5000/health || { echo "ERROR: Kestrel health check failed (see journalctl -u frontendnet)" >&2; exit 1; }
+echo " <- Kestrel OK"
+curl -fsS --resolve web.dima.lab:443:127.0.0.1 https://web.dima.lab/health || { echo "ERROR: nginx TLS health check failed" >&2; exit 1; }
+echo " <- nginx TLS OK"
 if ! curl -fsS https://api.dima.lab/health; then
   echo "ERROR: https://api.dima.lab/health is not reachable from web (is the api VM installed?)" >&2
   exit 1
