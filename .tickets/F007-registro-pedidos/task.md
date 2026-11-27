@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Lane | Spec |
 | :--- | :--- | :--- | :--- | :--- |
-| `F007` | `draft` (**blocked** on backend — see [BACK-HANDOFF.md](../../frontendnet/.routing/BACK-HANDOFF.md) items 1 & 3) | Strong coding model | Front | [spec.md](spec.md) |
+| `F007` | `dispatched` | Strong coding model | Front | [spec.md](spec.md) |
 
 ## Items addressed
 - Project brief modules: "Crear cuenta para comprar", "Carrito de compra" (checkout), "Pedidos recibidos (admin)".
