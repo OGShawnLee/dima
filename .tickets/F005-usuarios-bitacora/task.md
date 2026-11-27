@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Lane | Spec |
 | :--- | :--- | :--- | :--- | :--- |
-| `F005` | `draft` | Fast coding model (parallel worktree) | Front | [spec.md](spec.md) |
+| `F005` | `implemented` | Fast coding model (parallel worktree) | Front | [spec.md](spec.md) |
 
 ## Items addressed
 - FRONTEND-API-SPEC §5 (`Rol`, `Usuario`, `UsuarioPwd`, `Bitacora`), §7, §8; PDF fixes #4 (`string id` route param), #8, #11.
