@@ -1,0 +1,49 @@
+@model List<Bitacora>
+@{
+    ViewData["Title"] = "Bitácora";
+}
+<h1 class="h3 mb-3"><i class="bi bi-journal-text"></i> Bitácora</h1>
+<p class="text-body-secondary small">
+    Horas en zona horaria de la Ciudad de México. Los intentos de inicio de sesión fallidos se resaltan en rojo.
+</p>
+<div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+<div class="table-responsive">
+    <table class="table table-sm table-hover align-middle">
+        <thead>
+            <tr>
+                <th>@Html.DisplayNameFor(m => m[0].BitacoraId)</th>
+                <th>@Html.DisplayNameFor(m => m[0].Fecha)</th>
+                <th>@Html.DisplayNameFor(m => m[0].Accion)</th>
+                <th>@Html.DisplayNameFor(m => m[0].ElementoId)</th>
+                <th>@Html.DisplayNameFor(m => m[0].Usuario)</th>
+                <th>@Html.DisplayNameFor(m => m[0].IP)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Count == 0)
+            {
+                <tr><td colspan="6" class="text-center text-body-secondary">No hay registros para mostrar.</td></tr>
+            }
+            @foreach (var item in Model)
+            {
+                bool fallido = item.Accion == Bitacora.AccionLoginFallido;
+                <tr class="@(fallido ? "table-danger" : null)">
+                    <td>@item.BitacoraId</td>
+                    <td class="text-nowrap">@item.Fecha?.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                    <td>
+                        @if (fallido)
+                        {
+                            <i class="bi bi-exclamation-triangle-fill text-danger" aria-label="Inicio de sesión fallido"></i>
+                        }
+                        <code>@item.Accion</code>
+                    </td>
+                    <td class="text-break">@item.ElementoId</td>
+                    <td class="text-break">@item.Usuario</td>
+                    <td>@item.IP</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+<p class="small text-body-secondary">Mostrando @Model.Count elementos.</p>
