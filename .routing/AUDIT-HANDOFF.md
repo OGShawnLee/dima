@@ -143,3 +143,9 @@ _No audits recorded yet. First entry will be appended after Ticket `B001` reache
 - **Report:** [audit.md](../.tickets/F009-app-hardening/audit.md)
 - **Blocking Findings (Critical/High/Medium):** `0` (`None`)
 - **Action Needed:** Close as completed.
+
+## 2026-11-27 — `F008-production-deploy` (`Frontend`) — `PASS`
+- **Audited Commit:** `1acc3fe` (re-audit of `785a5c6`, `802b2d9`, `1acc3fe`)
+- **Report:** [audit.md](../.tickets/F008-production-deploy/audit.md)
+- **Blocking Findings (Critical/High/Medium):** `0` (`None`; `AUD-F008-01` High and `AUD-F008-02` Low resolved)
+- **Action Needed:** Close as completed after redeploying `web` from `1acc3fe` (`./deploy-all.sh web`) and confirming `ufw status` + `vagrant ssh web`. All `B001`–`B011` and `F001`–`F009` now have passing verdicts.
