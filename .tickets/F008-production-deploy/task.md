@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Lane | Spec |
 | :--- | :--- | :--- | :--- | :--- |
-| `F008` | `dispatched` (step A) | Strong model, **Supervised** permission mode (touches VMs and the host) | Front/Ops | [spec.md](spec.md) |
+| `F008` | step A `implemented`, step B `draft` | Strong model, **Supervised** permission mode (touches VMs and the host) | Front/Ops | [spec.md](spec.md) |
 
 ## Items addressed
 - [FDEC-003](../../frontendnet/.routing/DECISION.md#fdec-003); rubric "Uso de servidores", "Seguridad", "Pruebas solicitadas" 1–7.

@@ -84,3 +84,17 @@
 - **Request:** `backendnode/deploy/README.md` §1 step 3 says to copy `api.dima.lab.{crt,key}` and `dima-lab-ca.crt` into `backendnode/deploy/certs/` "(gitignored)", but no `.gitignore` rule covers that path (`git check-ignore backendnode/deploy/certs/x.crt` → not ignored). Add `backendnode/deploy/certs/` (and ideally `*.key`) to a `.gitignore`, or have `install-api.sh` accept a cert directory outside the repo.
 - **Why:** OWASP A02 / CWE-312 — a committed private key would have to be rotated and the lab CA reissued. Until fixed, the frontend's `deploy-all.sh` (F008) uploads certs to the VMs directly from the already-ignored `frontendnet/deploy/certs/` and never writes keys under `backendnode/`.
 - **Proposed contract:** None (repo hygiene only).
+
+## 2026-11-27 — `backendnode/deploy/` issues found while wiring F008 (`REQ-010`)
+- **Priority:** High for item 1 (deploy breaks without a workaround); Medium for 2–4; Low for 5–7.
+- **Needed by:** F008 step B (2026-11-27 08:30). The frontend's `deploy-all.sh` works around item 1 and avoids items 3–4; it does not edit `backendnode/**`.
+- **Request:**
+  1. **Database name mismatch:** `db/SCHEMA.sql` creates/uses `mercadolibrenode`, but `install-db.sh`, `install-api.sh`, `backup-db.sh`, `backup-db.service` (hard-coded `DB_DATABASE=dima_db`), `deploy/README.md` and `.env.example` default to `dima_db` → app user granted on a non-existent DB, API cannot read tables, nightly backup fails. Pick one name everywhere (workaround today: `DB_DATABASE=mercadolibrenode` + a `backup-db.service` drop-in).
+  2. **`backup-db.sh` umask:** the dump is created with the default umask before `chmod 600`, and a failed `mysqldump` exits before the chmod → a world-readable partial dump can remain. Add `umask 077` at the top.
+  3. **`deploy/README.md` cert location:** see `REQ-009` (`backendnode/deploy/certs/` not gitignored).
+  4. **`deploy/README.md` upload step:** `vagrant upload backendnode /tmp/backendnode` ships the working tree (incl. `node_modules`, any developer `.env`) and the full `.env.deploy` with the DB root password to every VM, left readable in `/tmp`. Recommend a staged, minimal per-role bundle (what `frontendnet/deploy/deploy-all.sh` now does) and deleting it after install.
+  5. **Seed step:** the README seed command ends in `|| true` (hides failures), and the seeder sets `gvera@uv.mx` / `patito@uv.mx` to the dev password `patito` in the production DB — document a post-seed password change (or a production seed with generated passwords).
+  6. **MySQL boot ordering:** `mysqld` binds `10.10.10.30` but only waits for `network.target`; after a reboot it may start before the private interface has its address. Add a drop-in with `Wants=`/`After=network-online.target` (will be checked in the F008 reboot drill).
+  7. **Minor:** rotating `DB_ROOT_PASSWORD` silently leaves `/etc/dima/backup.cnf` stale; `DB_SSL=false` by default (plaintext DB traffic on the lab network).
+- **Why:** Rubric "Uso de servidores" (working 3-server deploy, auto-start, backups) and OWASP A02/A05 (secret exposure, misconfiguration).
+- **Proposed contract:** None (deploy scripts/docs only).

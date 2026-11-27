@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Lane | Spec |
 | :--- | :--- | :--- | :--- | :--- |
-| `F009` | `dispatched` | Coding model | Front | [spec.md](spec.md) |
+| `F009` | `implemented` | Coding model | Front | [spec.md](spec.md) |
 
 ## Items addressed
 Follow-ups recorded in [PROGRESS.md](../../frontendnet/.routing/PROGRESS.md) "Notes for Later Tickets" during F001–F007:
