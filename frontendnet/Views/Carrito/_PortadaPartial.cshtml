@@ -1,0 +1,19 @@
+@model Producto
+@*
+    Cover image through the anonymous BFF image proxy (FDEC-002). The archivo name used as the
+    ?v= cache-buster elsewhere needs GET api/archivos (Administrador only), so the archivo id is
+    used instead for Usuario pages.
+*@
+@{
+    string clase = ViewData["clase"] as string ?? "img-thumbnail";
+    string ancho = ViewData["ancho"] as string ?? "80";
+}
+@if (Model.ArchivoId is int id)
+{
+    <img src="@Url.Action("Imagen", "Archivos", new { id, v = id })" alt="Portada de @Model.Titulo"
+         class="@clase" width="@ancho" loading="lazy" />
+}
+else
+{
+    <img src="https://placehold.co/300x200?text=Sin+portada" alt="Sin portada" class="@clase" width="@ancho" loading="lazy" />
+}
