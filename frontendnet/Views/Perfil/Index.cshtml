@@ -1,0 +1,25 @@
+@model AuthUser
+@{
+    ViewData["Title"] = "Perfil";
+    bool mostrarJwt = ViewBag.MostrarJwt is true;
+}
+<h1 class="h3 mb-4"><i class="bi bi-person-circle"></i> Perfil</h1>
+<div class="card shadow-sm">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Nombre</dt>
+            <dd class="col-sm-9">@Model.Nombre</dd>
+            <dt class="col-sm-3">Correo electrónico</dt>
+            <dd class="col-sm-9">@Model.Email</dd>
+            <dt class="col-sm-3">Rol</dt>
+            <dd class="col-sm-9"><span class="badge text-bg-secondary">@Model.Rol</span></dd>
+            <dt class="col-sm-3">Tiempo restante de sesión</dt>
+            <dd class="col-sm-9"><span id="tiempoRestante">@ViewBag.Tiempo</span></dd>
+            @if (mostrarJwt)
+            {
+                <dt class="col-sm-3">JWT <span class="badge text-bg-warning">Solo desarrollo</span></dt>
+                <dd class="col-sm-9"><code class="text-break">@Model.Jwt</code></dd>
+            }
+        </dl>
+    </div>
+</div>

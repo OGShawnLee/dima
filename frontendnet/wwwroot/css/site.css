@@ -1,0 +1,25 @@
+:root {
+    --dima-amarillo: #ffe600;
+}
+
+.bg-mercadolibre {
+    background-color: var(--dima-amarillo);
+}
+
+[data-bs-theme="dark"] .bg-mercadolibre {
+    background-color: var(--bs-body-bg);
+}
+
+[data-bs-theme="light"] .bg-mercadolibre .nav-link,
+[data-bs-theme="light"] .bg-mercadolibre .form-check-label {
+    color: #2d3277;
+}
+
+.logo-oscuro { display: none; }
+[data-bs-theme="dark"] .logo-claro { display: none; }
+[data-bs-theme="dark"] .logo-oscuro { display: inline; }
+
+.carrusel-img {
+    object-fit: cover;
+    max-height: 360px;
+}
