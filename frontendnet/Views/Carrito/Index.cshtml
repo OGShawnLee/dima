@@ -86,11 +86,12 @@ else
         <form asp-action="Vaciar" method="post">
             <button type="submit" class="btn btn-outline-danger"><i class="bi bi-x-circle"></i> Vaciar carrito</button>
         </form>
-        @* Checkout is implemented in F007 (PedidosController); disabled until then. The form tag
-           helper appends the antiforgery token. *@
-        <form action="~/Pedidos/Confirmar" method="post">
-            <button type="submit" class="btn btn-success" disabled aria-disabled="true">
-                <i class="bi bi-bag-check"></i> Confirmar compra <span class="badge text-bg-light ms-1">Próximamente</span>
+        @* Checkout (F007, PedidosController.Confirmar): posts no fields besides the antiforgery token
+           appended by the form tag helper (asp-* attributes are required for that; a literal action
+           attribute suppresses it); the cart is read from the session server-side. *@
+        <form asp-controller="Pedidos" asp-action="Confirmar" method="post">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-bag-check"></i> Confirmar compra
             </button>
         </form>
     </div>

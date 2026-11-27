@@ -20,6 +20,18 @@ public class AuthClientService(HttpClient client, IHttpContextAccessor httpConte
     }
 
     /// <summary>
+    /// Public self-registration (<c>POST api/auth/registro</c>, DEC-013). Sends only
+    /// <c>{ email, nombre, password }</c>: the role is forced to <c>Usuario</c> by the backend and is
+    /// never sent from the BFF. Non-2xx surfaces as <see cref="HttpRequestException"/> with <c>StatusCode</c>
+    /// (<c>400</c> validation, <c>409</c> duplicate email, <c>429</c> rate limit).
+    /// </summary>
+    public async Task RegistrarAsync(string email, string nombre, string password)
+    {
+        using var response = await client.PostAsJsonAsync("api/auth/registro", new { email, nombre, password });
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
     /// Writes the encrypted <c>.frontendnet</c> cookie. Returns <see cref="Task"/> and must be awaited
     /// so <c>Set-Cookie</c> is written before any redirect (PDF fix #1).
     /// </summary>
