@@ -13,10 +13,10 @@
 | Ticket | Title | Status | Lane | Depends on | Audit |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `F001` | MVC scaffold, BFF auth bridge, layout | `implemented` (merged to local `main` @ `44379ae`, not pushed) | Front | backend running locally | — |
-| `F002` | Categorías CRUD | `draft` | Front | F001 | — |
-| `F003` | Archivos CRUD + BFF image proxy | `draft` | Front | F001 | — |
+| `F002` | Categorías CRUD | `dispatched` | Front | F001 | — |
+| `F003` | Archivos CRUD + BFF image proxy | `implemented` (merged to local `main` @ `4f37c7c`, not pushed) | Front | F001 | — |
 | `F004` | Productos CRUD + categories M:N | `draft` | Front | F002, F003 | — |
-| `F005` | Usuarios CRUD + Bitácora | `draft` | Front | F001 | — |
+| `F005` | Usuarios CRUD + Bitácora | `dispatched` | Front | F001 | — |
 | `F006` | Comprar catalog + session cart | `draft` | Front | F004 | — |
 | `F007` | Self-registration + checkout + orders (customer & admin) | `draft` | Front | F006 + backend endpoints | — |
 | `F008` | Production hardening + 3-server deployment | `draft` | Front/Ops | F001–F006 (F007 if ready) | — |
@@ -49,11 +49,13 @@
 ## Router Verification Log
 
 - 2026-11-26 — `F001` @ `44379ae` verified by router: Release build 0 warnings / 0 errors; no `async void`; global `AutoValidateAntiforgeryTokenAttribute` (`POST /Auth` without token → `400`); no `Html.Raw`; `net10.0`; `IniciaSesionAsync` returns `Task` and is awaited; no secrets in `appsettings*.json`; scope ⊆ ticket. Live smoke (https profile): generic login error, admin → `/Productos`, `/Perfil` shows claims + `/api/auth/tiempo`, cookie `secure; samesite=strict; httponly`, CSP / `nosniff` / `DENY` / `Referrer-Policy` present, **session survives backend restart**, tampered cookie and anonymous → `/Auth`, `/Auth/Salir` expires the cookie. Worker evidence accepted for JWT sliding refresh, expired JWT → `/Auth/Salir`, Production hides raw JWT, `X-Forwarded-For` visible in `bitacora`.
+- 2026-11-26 — `F003` @ `4f37c7c` verified by router: Release build 0 warnings / 0 errors; no `async void`; no `Html.Raw`, no `PublicUrlWebAPI` / `:3000` in Views; controller `[Authorize(Roles = "Administrador")]` with only `Imagen` `[AllowAnonymous]` behind an `{id:int}` constraint; scope ⊆ ticket. Live: unknown id → `404` + `no-store`, `abc` and encoded path-traversal → `404`, anonymous `/Archivos` → `/Auth`. Worker evidence accepted for upload/replace/delete, oversize / non-JPEG rejection, proxy `image/jpeg` + `nosniff`, Usuario → AccessDenied. Audit note: `Imagen` is `public, max-age=300`; a logged-in request near JWT expiry could carry a refreshed `Set-Cookie` on that cacheable response (no shared cache in the deploy plan).
 
 ## Notes for Later Tickets (from F001)
 
 - Cart badge reads session key `CarritoCantidad` — `F006` must keep it updated.
 - `RefrescaTokenDelegatingHandler` turns any non-2xx into `HttpRequestException` with `StatusCode`; branch on `ex.StatusCode` (e.g. `409` in `F007`, `400` in `F005`) — response bodies (`detalles`) are not readable through these clients.
+- Image URLs: `Url.Action("Imagen", "Archivos", new { id })` + `?v={nombre}` cache-buster (F003); CSP allows `data:` images, not `blob:`.
 - `Usuario` login redirects to `/` (Home); HSTS is suppressed on `localhost` by ASP.NET Core defaults.
 
 ## Completed

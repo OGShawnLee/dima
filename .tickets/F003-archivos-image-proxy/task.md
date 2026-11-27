@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Lane | Spec |
 | :--- | :--- | :--- | :--- | :--- |
-| `F003` | `draft` | Fast coding model (parallel worktree) | Front | [spec.md](spec.md) |
+| `F003` | `implemented` | Fast coding model (parallel worktree) | Front | [spec.md](spec.md) |
 
 ## Items addressed
 - FRONTEND-API-SPEC §5 (`Upload`, `Archivo` — "Tamaño" typo fix), §7 (`ArchivosClientService`), §8 (`ArchivosController`), §9 (`portada.js`); PDF fixes #8, #10, #11.
