@@ -18,7 +18,7 @@
 | `F004` | Productos CRUD + categories M:N | `implemented` (merged to local `main` @ `1bf521d`, not pushed) | Front | F002, F003 | — |
 | `F005` | Usuarios CRUD + Bitácora | `implemented` (merged to local `main` @ `0f491b7`, not pushed) | Front | F001 | — |
 | `F006` | Comprar catalog + session cart | `implemented` (merged to local `main` @ `10b7b13`, not pushed) | Front | F004 | — |
-| `F007` | Self-registration + checkout + orders (customer & admin) | `draft` | Front | F006 + backend endpoints | — |
+| `F007` | Self-registration + checkout + orders (customer & admin) | `dispatched` | Front | F006 + backend endpoints | — |
 | `F008` | Production hardening + 3-server deployment | `draft` | Front/Ops | F001–F006 (F007 if ready) | — |
 
 `F002`, `F003`, and `F005` touch disjoint files and can run in **parallel worktrees** once `F001` is merged.

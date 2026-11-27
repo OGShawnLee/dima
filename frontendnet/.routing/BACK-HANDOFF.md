@@ -70,3 +70,10 @@
 - **Priority:** Low (informational)
 - **Request:** None. The Security Auditor will audit `B001`–`B008` today (2026-11-26, 14:00–18:30). Expect `CHANGES REQUESTED` entries in `.routing/AUDIT-HANDOFF.md` this evening; please keep a worker warm. New endpoints from `REQ-001`/`REQ-003` should come as new `B` tickets so they can be audited too.
 - **Tooling note:** a root `t3.json` (T3 Code project actions, no secrets) is proposed in the frontend branch; feel free to own/move it — it does not affect the build.
+
+## 2026-11-26 — `setup:db` fails on a database left over from the Sequelize course project (`REQ-008`)
+- **Priority:** Low (local dev only; fresh servers are unaffected)
+- **Needed by:** before teammates run `B010`'s schema on an existing local DB
+- **Request:** Document in `backendnode/README.md` (and/or detect in `scripts/setup-db.mjs`) that an existing `mercadolibrenode` created by the course's Sequelize project (has a `SequelizeMeta` table; `usuario.id` is `CHAR(36) COLLATE utf8mb4_bin`, tables `utf8mb4_0900_ai_ci`) cannot be upgraded in place: `CREATE TABLE IF NOT EXISTS` skips the old tables, and `fk_pedido_usuario` fails with *"Referencing column 'usuarioid' and referenced column 'id' … are incompatible"* (`VARCHAR(36) utf8mb4_unicode_ci` vs `CHAR(36) utf8mb4_bin`). Suggested README fix: `DROP DATABASE mercadolibrenode;` then `npm run setup:db -- --seed`. Optional: have `setup:db` abort early with that hint when `SequelizeMeta` exists.
+- **Why:** Hit by the frontend team while preparing `F007` smoke tests (`GET /api/pedidos` → `500`). Resolved locally by rebuilding the DB; all 9 tables are now `utf8mb4_unicode_ci` and `GET /api/pedidos` → `200`.
+- **Proposed contract:** None (docs/tooling only).
