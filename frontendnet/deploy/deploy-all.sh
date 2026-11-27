@@ -8,7 +8,7 @@
 #   up     vagrant up (honours DIMA_BOX, DIMA_PROVIDER)
 #   db     upload backendnode + install-db.sh on db     (MySQL, schema, DML-only app user, ufw, backups)
 #   api    upload backendnode + install-api.sh on api   (Node 22, systemd, nginx 443, ufw)
-#   seed   run the backend seeder once (marker on api; DIMA_RESEED=1 to force)
+#   seed   production bootstrap (dist/db/bootstrap.js, generated admin/usuario; marker on api; DIMA_RESEED=1 to force)
 #   web    publish-web.sh                               (dotnet publish + install-web.sh on web)
 #
 # Environment:
@@ -16,7 +16,7 @@
 #                         so deleting a worktree never orphans the VMs)
 #   DIMA_BOX              Vagrant box (Vagrantfile default debian/bookworm64; this host: cloud-image/ubuntu-24.04)
 #   DIMA_PROVIDER         default libvirt (virtualbox on Windows hosts)
-#   DIMA_RESEED=1         run the seeder again (it upserts the seeded products: admin edits to them are reverted)
+#   DIMA_RESEED=1         run the bootstrap again (re-applies the generated credentials and upserts the catalog)
 #
 # Secrets: backendnode/deploy/.env.deploy (git-ignored by the root rule ".env.*") is generated here with
 # random values ONLY if it does not exist (mode 600) and is never printed. Each VM receives only the keys
@@ -53,11 +53,29 @@ rand_secret() {
   printf '%s-Aa9' "$(openssl rand -base64 30 | tr '+/' '-_' | tr -d '=\n')"
 }
 
+# Production bootstrap accounts (AUD-F008-01). Appended to .env.deploy only if missing, never printed, and
+# NOT part of any per-VM key allowlist: phase_seed feeds them to the remote process over stdin.
+ensure_bootstrap_creds() {
+  local k
+  for k in ADMIN_EMAIL ADMIN_PASSWORD USER_EMAIL USER_PASSWORD; do
+    grep -q "^$k=" "$ENV_DEPLOY" && continue
+    (
+      umask 077
+      case "$k" in
+        ADMIN_EMAIL)    printf 'ADMIN_EMAIL=admin@dima.lab\n' ;;
+        USER_EMAIL)     printf 'USER_EMAIL=usuario@dima.lab\n' ;;
+        *)              printf '%s=%s\n' "$k" "$(rand_secret)" ;;
+      esac >> "$ENV_DEPLOY"
+    )
+  done
+}
+
 ensure_secrets() {
   git -C "$REPO" check-ignore -q "$ENV_DEPLOY" \
     || die "$ENV_DEPLOY is not git-ignored; refusing to write secrets there"
   if [[ -f "$ENV_DEPLOY" ]]; then
     chmod 600 "$ENV_DEPLOY"
+    ensure_bootstrap_creds
     return 0
   fi
   log "Generating $ENV_DEPLOY (random values, mode 600, not printed)"
@@ -77,6 +95,7 @@ ensure_secrets() {
     } > "$ENV_DEPLOY"
   )
   chmod 600 "$ENV_DEPLOY"
+  ensure_bootstrap_creds
 }
 
 env_value() { # non-secret keys only (DB_DATABASE, DB_USER)
@@ -120,7 +139,9 @@ run_backend_installer() {
   local vm="$1" script="$2" up="/tmp/dima-upload-$1"
   vagrant ssh "$vm" -c "sudo rm -rf $up && install -d -m 700 $up"
   vagrant upload "$STAGE/backend.tgz" "$up/backend.tgz" "$vm"
-  vagrant ssh "$vm" -c "sudo bash -c 'set -euo pipefail
+  # SSH_CONNECTION is forwarded explicitly (sudo's env_reset drops it) so the installers' "keep the current ssh
+  # peer" ufw rule is written and `vagrant ssh` still works after the firewall is enabled.
+  vagrant ssh "$vm" -c "sudo SSH_CONNECTION=\"\${SSH_CONNECTION:-}\" bash -c 'set -euo pipefail
     trap \"rm -rf /tmp/dima-backend $up\" EXIT
     rm -rf /tmp/dima-backend && install -d -m 700 /tmp/dima-backend
     tar --no-same-owner -C /tmp/dima-backend -xzf $up/backend.tgz
@@ -187,16 +208,21 @@ phase_api() {
 
 phase_seed() {
   require vagrant
+  ensure_secrets
   if [[ "${DIMA_RESEED:-0}" != "1" ]] && vagrant ssh api -c "sudo test -f $SEED_MARKER" >/dev/null 2>&1; then
-    log "seed: already seeded ($SEED_MARKER on api); DIMA_RESEED=1 to run again"
+    log "seed: already bootstrapped ($SEED_MARKER on api); DIMA_RESEED=1 to run again"
     return 0
   fi
-  log "seed: backend seeder on api (NODE_ENV=development for this one process only)"
-  # node --env-file loads /etc/backendnode/backendnode.env; variables already in the environment win,
-  # so NODE_ENV=development overrides the file's NODE_ENV=production for the seeder only.
-  vagrant ssh api -c "cd /opt/backendnode && sudo -u backendnode env NODE_ENV=development \
-      node --env-file=/etc/backendnode/backendnode.env /opt/backendnode/dist/db/seed.js \
+  log "seed: production bootstrap on api (generated credentials over stdin; roles, catalog, admin + usuario)"
+  # The credentials travel on the ssh stdin only: they never appear in argv/ps or in the output. The remote
+  # shell (running as backendnode) reads them, exports them and execs node with the production env file.
+  {
+    for k in ADMIN_EMAIL ADMIN_PASSWORD USER_EMAIL USER_PASSWORD; do
+      sed -n "s/^$k=//p" "$ENV_DEPLOY" | tail -n 1
+    done
+  } | vagrant ssh api -c "cd /opt/backendnode && sudo -u backendnode bash -c 'IFS= read -r ADMIN_EMAIL; IFS= read -r ADMIN_PASSWORD; IFS= read -r USER_EMAIL; IFS= read -r USER_PASSWORD; export ADMIN_EMAIL ADMIN_PASSWORD USER_EMAIL USER_PASSWORD; exec node --env-file=/etc/backendnode/backendnode.env /opt/backendnode/dist/db/bootstrap.js' \
     && sudo install -d -m 700 $(dirname "$SEED_MARKER") && sudo touch $SEED_MARKER"
+  log "seed: credentials are in $ENV_DEPLOY (mode 600, git-ignored)"
 }
 
 phase_web() {

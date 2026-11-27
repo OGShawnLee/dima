@@ -64,7 +64,17 @@ systemctl reload nginx 2>/dev/null || systemctl restart nginx
 ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
-ufw allow 22/tcp
+# SSH only from the management CIDR (same pattern as install-db.sh / install-api.sh) plus the Vagrant
+# management network (libvirt NAT 192.168.121.0/24) so `vagrant ssh` keeps working (AUD-F008-02).
+ufw allow from "${MGMT_CIDR:-10.10.10.0/24}" to any port 22 proto tcp
+ufw allow from "${VAGRANT_MGMT_CIDR:-192.168.121.0/24}" to any port 22 proto tcp
+ufw allow from 10.0.2.0/24 to any port 22 proto tcp   # VirtualBox NAT (teammates on the virtualbox provider)
+if [[ -n "${SSH_CONNECTION:-}" ]]; then
+  SSH_PEER_IP="${SSH_CONNECTION%% *}"
+  if [[ "$SSH_PEER_IP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+    ufw allow from "${SSH_PEER_IP}/32" to any port 22 proto tcp
+  fi
+fi
 ufw allow 443/tcp
 ufw --force enable
 

@@ -86,3 +86,10 @@ $ git status --ignored   -> only tracked deploy files modified; no certs/, out/,
 - Backend fix committed as `e0668de` (`zz-dima.cnf`). `deploy-all.sh` deploys committed `HEAD` (git archive), so it must be committed before a rebuild.
 - `db` VM destroyed and rebuilt from the committed script: `/etc/mysql/mysql.conf.d/` has `zz-dima.cnf`, `3306` listens on `10.10.10.30`.
 - Re-seeded with `DIMA_RESEED=1 ./deploy-all.sh seed` (marker on `api` makes plain `seed` skip): 2 users, 15 products. Admin login 302 → `/Productos` 200.
+
+### Audit remediation 2026-11-27 (AUD-F008-01, AUD-F008-02)
+- **AUD-F008-01:** `phase_seed` now runs `dist/db/bootstrap.js` (no `NODE_ENV=development`, no `seed.js`). `ensure_secrets`/`ensure_bootstrap_creds` append `ADMIN_EMAIL=admin@dima.lab`, `USER_EMAIL=usuario@dima.lab` and random `ADMIN_PASSWORD`/`USER_PASSWORD` to the git-ignored `backendnode/deploy/.env.deploy` (600) if missing; they are not in any per-VM key allowlist and reach the remote process over ssh stdin only (nothing in argv/ps/output). The old dev users were deleted from the lab DB.
+- Regression: `grep -n 'NODE_ENV=development\|seed.js' frontendnet/deploy/deploy-all.sh` → none; `POST /api/auth` `gvera@uv.mx`/`patito` → 401 (also `patito@uv.mx`); generated admin logs in via `https://web.dima.lab` (302 → `/Productos`, `/Categorias` 200).
+- **AUD-F008-02:** `install-web.sh` limits 22/tcp to `MGMT_CIDR` (10.10.10.0/24), the Vagrant libvirt NAT 192.168.121.0/24, VirtualBox NAT 10.0.2.0/24 and the current ssh peer; 443 stays open. `ufw status` on web confirmed; `vagrant ssh web` works.
+- **Found while verifying:** `sudo` drops `SSH_CONNECTION`, so the backend installers' "keep the current ssh peer" rule was never written and `vagrant ssh api` hung after redeploy (SSH only from 10.10.10.0/24). `run_backend_installer` now forwards it (`sudo SSH_CONNECTION=… bash`). The live `api` VM got `ufw allow from 192.168.121.0/24 to any port 22` by hand.
+- Note: `api` had to be redeployed (`./deploy-all.sh api`) because the previous build predated `bootstrap.js` (B011 remediation).
