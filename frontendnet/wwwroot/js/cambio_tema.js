@@ -10,11 +10,11 @@
                 return guardado;
             }
         } catch (e) { /* storage unavailable */ }
-        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
 
     function aplicaTema(tema) {
-        document.documentElement.setAttribute('data-bs-theme', tema);
+        document.documentElement.dataset.bsTheme = tema;
     }
 
     // Runs in <head>: apply before first paint.
@@ -25,7 +25,7 @@
         if (!interruptor) {
             return;
         }
-        interruptor.checked = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        interruptor.checked = document.documentElement.dataset.bsTheme === 'dark';
         interruptor.addEventListener('change', function () {
             var tema = interruptor.checked ? 'dark' : 'light';
             aplicaTema(tema);
