@@ -1,26 +1,39 @@
-# Dima lab topology: 3 servers on an isolated libvirt network (no NAT forwarding on 10.10.10.0/24).
-# Host (10.10.10.1) reaches the VMs directly; Vagrant SSH uses the default management network.
+# Dima lab topology: 3 servers on an isolated private network.
 #
 #   web  10.10.10.10  nginx 443 -> Kestrel 127.0.0.1:5000   (frontendnet)
 #   api  10.10.10.20  nginx 443 -> Node    127.0.0.1:3000   (backendnode)
 #   db   10.10.10.30  MySQL 8.0 3306 (only from api)
 #
-# Usage (from frontendnet/deploy/):  vagrant up --provider=libvirt
-# Swap BOX for the Ubuntu LTS box you already use with vagrant-libvirt if this one is not cached.
+# Providers: libvirt (Linux/KVM) and virtualbox (Windows). One box works for both.
+#   Linux:   vagrant up --provider=libvirt            (all 3 VMs, ~2.8 GB RAM total)
+#   Windows: vagrant up --provider=virtualbox
+#   Light dev (DB only, ~1 GB): vagrant up db  -> run Node/.NET natively against 10.10.10.30
+#   Full automated deploy (Linux host): ./deploy-all.sh   (see DEPLOY-PLAN.md)
+#
+# Vagrant state must NOT live in the checkout (a deleted worktree would orphan the VMs):
+#   export VAGRANT_DOTFILE_PATH="$HOME/.local/share/dima-vagrant"
+# VM names are stable and path-independent: libvirt domains "dima_<name>", VirtualBox VMs "dima-<name>".
+#
+# Overrides (env vars): DIMA_BOX, DIMA_WEB_MEM, DIMA_API_MEM, DIMA_DB_MEM, DIMA_UPGRADE=0 (skip apt upgrade)
+# Server software is installed by frontendnet/deploy/publish-web.sh and backendnode/deploy/install-{api,db}.sh.
 
-BOX = ENV.fetch("DIMA_BOX", "cloud-image/ubuntu-24.04")
+if ENV.fetch("VAGRANT_DOTFILE_PATH", "").empty?
+  warn "[dima] VAGRANT_DOTFILE_PATH is not set: Vagrant state will live in this checkout. " \
+       "Recommended: export VAGRANT_DOTFILE_PATH=\"$HOME/.local/share/dima-vagrant\""
+end
+
+BOX = ENV.fetch("DIMA_BOX", "debian/bookworm64")
+UPGRADE = ENV.fetch("DIMA_UPGRADE", "1") == "1"
 
 SERVERS = {
-  "web" => { ip: "10.10.10.10", memory: 1536, cpus: 2 },
-  "api" => { ip: "10.10.10.20", memory: 1536, cpus: 2 },
-  "db"  => { ip: "10.10.10.30", memory: 2048, cpus: 2 },
+  "web" => { ip: "10.10.10.10", memory: ENV.fetch("DIMA_WEB_MEM", "1024").to_i, cpus: 1 },
+  "api" => { ip: "10.10.10.20", memory: ENV.fetch("DIMA_API_MEM", "768").to_i,  cpus: 1 },
+  "db"  => { ip: "10.10.10.30", memory: ENV.fetch("DIMA_DB_MEM",  "1024").to_i, cpus: 1 },
 }
 
-HOSTS_ENTRIES = <<~HOSTS
-  10.10.10.10 web.dima.lab
-  10.10.10.20 api.dima.lab
-  10.10.10.30 db.dima.lab
-HOSTS
+HOSTS_ENTRIES = "10.10.10.10 web.dima.lab\n10.10.10.20 api.dima.lab\n10.10.10.30 db.dima.lab\n"
+
+APT_OPTS = '-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"'
 
 Vagrant.configure("2") do |config|
   config.vm.box = BOX
@@ -36,18 +49,30 @@ Vagrant.configure("2") do |config|
         libvirt__forward_mode: "none"
 
       node.vm.provider :libvirt do |lv|
+        lv.default_prefix = "dima_" # domain "dima_<name>", independent of the checkout directory
         lv.memory = opts[:memory]
         lv.cpus = opts[:cpus]
         lv.autostart = true # VM boots with the host (rubric test 5)
       end
 
+      node.vm.provider :virtualbox do |vb|
+        vb.name = "dima-#{name}"
+        vb.memory = opts[:memory]
+        vb.cpus = opts[:cpus]
+        vb.linked_clone = true
+        # VirtualBox has no Vagrant autostart option: for rubric test 5 on Windows use
+        # VBoxManage autostart or reboot only the guests (services start on guest boot).
+      end
+
       node.vm.provision "shell", inline: <<~SHELL
         set -euo pipefail
-        grep -q "dima.lab" /etc/hosts || printf '%s\n' "#{HOSTS_ENTRIES}" >> /etc/hosts
+        export DEBIAN_FRONTEND=noninteractive
+        # Match full entries: the hostname line (127.0.1.1 #{name}.dima.lab) must not skip this
+        grep -q "^10.10.10.20 api.dima.lab" /etc/hosts || printf '%s' "#{HOSTS_ENTRIES}" >> /etc/hosts
         timedatectl set-timezone America/Mexico_City
         apt-get update -y
-        DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
-        DEBIAN_FRONTEND=noninteractive apt-get install -y ufw unattended-upgrades ca-certificates curl
+        #{UPGRADE ? "apt-get #{APT_OPTS} upgrade -y" : "echo 'Skipping apt upgrade (DIMA_UPGRADE=0)'"}
+        apt-get #{APT_OPTS} install -y ufw unattended-upgrades ca-certificates curl
       SHELL
     end
   end

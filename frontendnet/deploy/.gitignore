@@ -1,4 +1,5 @@
 certs/
 out/
 .vagrant/
+.env.deploy
 *.tgz

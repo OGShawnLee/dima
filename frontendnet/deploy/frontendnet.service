@@ -21,11 +21,16 @@ Environment=UrlWebAPI=https://api.dima.lab
 Environment=DataProtection__KeysPath=/var/lib/frontendnet/keys
 Environment=DOTNET_NOLOGO=1
 Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+Environment=DOTNET_gcServer=0
 
-# Persistent state: Data Protection keys survive restarts so cookies stay valid
+# Persistent state: Data Protection keys survive restarts so cookies stay valid.
+# /var/lib/frontendnet (0700, frontendnet) is created by systemd; the app creates .../keys itself,
+# and UMask=0077 makes that directory 0700 and the key files 0600.
+# Keep DataProtection__KeysPath and UrlWebAPI identical to appsettings.Production.json.
 StateDirectory=frontendnet
 StateDirectoryMode=0700
-LogsDirectory=frontendnet
+UMask=0077
+# Logs go to the journal: journalctl -u frontendnet
 
 # Hardening (do NOT add MemoryDenyWriteExecute: it breaks the .NET JIT)
 NoNewPrivileges=yes
