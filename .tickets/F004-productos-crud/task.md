@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Lane | Spec |
 | :--- | :--- | :--- | :--- | :--- |
-| `F004` | `draft` | Strong coding model | Front | [spec.md](spec.md) |
+| `F004` | `implemented` | Strong coding model | Front | [spec.md](spec.md) |
 
 ## Items addressed
 - FRONTEND-API-SPEC §5 (`Producto`, `ProductoCategoria`), §7 (`ProductosClientService`), §8 (`ProductosController`), §9 (`producto_portada.js`); PDF fixes #2 (`[JsonPropertyName("archivoid")]`), #8, #9 (escaped price regex), #10, #11.
