@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Lane | Spec |
 | :--- | :--- | :--- | :--- | :--- |
-| `F006` | `draft` | Strong coding model | Front | [spec.md](spec.md) |
+| `F006` | `implemented` | Strong coding model | Front | [spec.md](spec.md) |
 
 ## Items addressed
 - FRONTEND-API-SPEC §8 (`ComprarController`, `CarritoController`), PDF fix #6 (correct controller filenames).
