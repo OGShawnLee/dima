@@ -2,8 +2,8 @@
 
 ## Current Status
 
-- **Phase:** Audit Remediation (`B001`–`B010` `completed` after `$security-audit` PASS; `B011` `changes-requested` dispatched for `AUD-B011-01`–`07` + `REQ-008`–`010`)
-- **Repository State:** Full `backendnode/` API + Orders + Production Deploy Templates verified on `main` (`13` test files, `172/172` tests passing, `tsc --noEmit` 0 errors, `tsc` build clean, `0` `any` in `src/`).
+- **Phase:** Audit Re-Check Ready (`B001`–`B010` `completed`; `B011` remediated @ `310329e` and back in `implemented` awaiting `$security-audit` re-audit)
+- **Repository State:** Full `backendnode/` API + Orders + Hardened Production Deploy verified (`13` test files, `181/181` tests passing, `tsc --noEmit` 0 errors, `tsc` build clean, `0` `any`, `0` `request-ip`).
 - **Decision Recorded:** Backend (`backendnode`) is the source of truth; all 17 architectural/security decisions (`DEC-001`–`DEC-017`) logged in [DECISION.md](DECISION.md).
 
 ---
@@ -33,7 +33,7 @@
 - **`B008-openapi-and-integration`** (`completed` — Track `C`, Audited @ `73c2bb3`: `PASS WITH NOTES`, 0 blockers).
 - **`B009-self-registration-and-password-policy`** (`completed` — Track `A`, Audited @ `73c2bb3`: `PASS WITH NOTES`, 0 blockers).
 - **`B010-orders-module`** (`completed` — Track `B`, Audited @ `73c2bb3`: `PASS WITH NOTES`, 0 blockers).
-- **`B011-prod-hardening-and-deploy-scripts`** (`changes-requested` — Track `Shared`, Audited @ `73c2bb3`: `CHANGES REQUESTED` — 4 blockers `AUD-B011-01`–`04` + Lows `AUD-B011-05`–`07` + `REQ-008`–`010`; remediation dispatched).
+- **`B011-prod-hardening-and-deploy-scripts`** (`implemented` — Track `Shared`, Remediated @ `310329e`): Resolved all 7 audit findings (`AUD-B011-01`–`07`) + `REQ-008`–`010`; router-verified (`13/13` files, `181/181` tests, `0` TS errors, `0` `any`, `0` `request-ip`). Ready for Security Auditor re-audit (`$security-audit`).
 
 ---
 
@@ -124,4 +124,4 @@ Resolve and lock these into the backend Zod schemas & OpenAPI 3.0.3 spec before 
 8. **Ticket B008 — OpenAPI 3.0.3 & Full Verification (`completed`):** Complete `src/config/openapi.ts` registry (`/openapi.json`, `/swagger`, `/docs`), wire all routes in `app.ts`, end-to-end contract & security test suite (`132/132` passing).
 9. **Ticket B009 — Public Self-Registration & Strong Password Policy (`completed`):** `REQ-001` (`POST /api/auth/registro`, rate-limited, server-forced `Usuario`, bitácora `usuario.registro`) + `REQ-002` (`StrongPasswordSchema` 12–128 chars + upper/lower/digit/symbol on `/api/usuarios` & `/api/auth/registro`).
 10. **Ticket B010 — Server-Authoritative Orders Module (`completed`):** `REQ-003` (`pedido` + `pedidodetalle` in `schema.ts` & `db/SCHEMA.sql`, `/api/pedidos` + `/api/pedidos/mios` + `/api/pedidos/:id`, server-side price recomputation, anti-IDOR `404`, OpenAPI + route wiring).
-11. **Ticket B011 — Production Hardening, Remote DB Setup & Deploy Templates (`changes-requested`):** Remediating `AUD-B011-01`–`07` + `REQ-008`–`010` before re-audit.
+11. **Ticket B011 — Production Hardening, Remote DB Setup & Deploy Templates (`implemented`):** Remediated `AUD-B011-01`–`07` + `REQ-008`–`010` (`310329e`), ready for Security Auditor re-audit.

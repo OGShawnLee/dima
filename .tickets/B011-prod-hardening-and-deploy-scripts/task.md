@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Track | Services | Spec |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `B011` | `changes-requested` | `Gemini 4 Hydrogen (Medium)` | `Shared` | Production runtime (`env`, `app`, `index`, `ratelimit`, `bitacora`, `errorhandler`), controllers audit IP, `bootstrap`/`seed`, `SCHEMA.sql`, `setup-db`, `backendnode/deploy/`, root `.gitignore` | [spec.md](spec.md) |
+| `B011` | `implemented` | `Gemini 4 Hydrogen (Medium)` | `Shared` | Production runtime (`env`, `app`, `index`, `ratelimit`, `bitacora`, `errorhandler`), controllers audit IP, `bootstrap`/`seed`, `SCHEMA.sql`, `setup-db`, `backendnode/deploy/`, root `.gitignore` | [spec.md](spec.md) |
 
 ## Security & Contract Items Addressed
 
