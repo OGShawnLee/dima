@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Track | Services | Spec |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `B005` | `implemented` | `Gemini 4 Hydrogen (Medium)` | `A` | `roles`, `usuarios` | [spec.md](spec.md) |
+| `B005` | `completed` | `Gemini 4 Hydrogen (Medium)` | `A` | `roles`, `usuarios` | [spec.md](spec.md) |
 
 ## Security & Contract Items Addressed
 

@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Track | Services | Spec |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `B001` | `implemented` | `Gemini 4 Hydrogen (Medium)` | `Shared` | Shared foundation (`common.schema`, `env`, `claimtypes`, `app`, `errorhandler`, `validate`) | [spec.md](spec.md) |
+| `B001` | `completed` | `Gemini 4 Hydrogen (Medium)` | `Shared` | Shared foundation (`common.schema`, `env`, `claimtypes`, `app`, `errorhandler`, `validate`) | [spec.md](spec.md) |
 
 ## Security & Contract Items Addressed
 

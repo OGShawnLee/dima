@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Track | Services | Spec |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `B003` | `implemented` | `Gemini 4 Hydrogen (Medium)` | `Shared` | Database DDL (`SCHEMA.sql`) & environment/DB bootstrap scripts | [spec.md](spec.md) |
+| `B003` | `completed` | `Gemini 4 Hydrogen (Medium)` | `Shared` | Database DDL (`SCHEMA.sql`) & environment/DB bootstrap scripts | [spec.md](spec.md) |
 
 ## Security & Contract Items Addressed
 

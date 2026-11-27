@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Track | Services | Spec |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `B002` | `implemented` | `Gemini 4 Hydrogen (Medium)` | `Shared` | All 7 SQL entities (`rol`, `categoria`, `archivo`, `bitacora`, `usuario`, `producto`, `categoriaproducto`) | [spec.md](spec.md) |
+| `B002` | `completed` | `Gemini 4 Hydrogen (Medium)` | `Shared` | All 7 SQL entities (`rol`, `categoria`, `archivo`, `bitacora`, `usuario`, `producto`, `categoriaproducto`) | [spec.md](spec.md) |
 
 ## Security & Contract Items Addressed
 

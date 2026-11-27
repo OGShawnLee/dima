@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Track | Services | Spec |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `B004` | `implemented` | `Gemini 4 Hydrogen (Medium)` | `A` | `auth`, `bitacora` | [spec.md](spec.md) |
+| `B004` | `completed` | `Gemini 4 Hydrogen (Medium)` | `A` | `auth`, `bitacora` | [spec.md](spec.md) |
 
 ## Security & Contract Items Addressed
 

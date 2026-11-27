@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Track | Services | Spec |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `B011` | `implemented` | `Gemini 4 Hydrogen (Medium)` | `Shared` | Production runtime (`env`, `app`, `index`, `ratelimit`, `bitacora`, `errorhandler`), `setup-db`, `backendnode/deploy/` | [spec.md](spec.md) |
+| `B011` | `changes-requested` | `Gemini 4 Hydrogen (Medium)` | `Shared` | Production runtime (`env`, `app`, `index`, `ratelimit`, `bitacora`, `errorhandler`), controllers audit IP, `bootstrap`/`seed`, `SCHEMA.sql`, `setup-db`, `backendnode/deploy/`, root `.gitignore` | [spec.md](spec.md) |
 
 ## Security & Contract Items Addressed
 
@@ -14,15 +14,29 @@
 ## Scope
 
 ### May create or edit
+- `.gitignore`
 - `backendnode/.env.example`
+- `backendnode/package.json`
+- `backendnode/package-lock.json`
+- `backendnode/db/SCHEMA.sql`
 - `backendnode/src/config/env.ts`
 - `backendnode/src/db/index.ts`
+- `backendnode/src/db/seed.ts`
+- `backendnode/src/db/bootstrap.ts`
 - `backendnode/src/middlewares/ratelimit.middleware.ts`
 - `backendnode/src/middlewares/errorhandler.middleware.ts`
 - `backendnode/src/middlewares/bitacora.middleware.ts`
+- `backendnode/src/routes/auth.routes.ts`
+- `backendnode/src/controllers/auth.controller.ts`
+- `backendnode/src/controllers/usuarios.controller.ts`
+- `backendnode/src/controllers/categorias.controller.ts`
+- `backendnode/src/controllers/productos.controller.ts`
+- `backendnode/src/controllers/archivos.controller.ts`
+- `backendnode/src/controllers/pedidos.controller.ts`
 - `backendnode/src/app.ts`
 - `backendnode/src/index.ts`
 - `backendnode/scripts/setup-db.mjs`
+- `backendnode/scripts/setup-env.mjs`
 - `backendnode/README.md`
 - `backendnode/deploy/backendnode.service`
 - `backendnode/deploy/nginx-api.conf`
@@ -34,11 +48,13 @@
 - `backendnode/deploy/README.md`
 - `backendnode/tests/prod-hardening.test.ts`
 - `backendnode/tests/setup.test.ts`
+- `backendnode/tests/db.test.ts`
+- `backendnode/tests/auth.test.ts`
 - `.tickets/B011-prod-hardening-and-deploy-scripts/changelog.md`
 
 ### Must not touch
-- `backendnode/src/db/schema.ts`, `backendnode/db/SCHEMA.sql`, `backendnode/package.json`
-- Any domain `schemas/`, `services/`, `controllers/`, `routes/` files (except reading them)
+- `backendnode/src/db/schema.ts`, `backendnode/src/config/openapi.ts`
+- Any domain `schemas/` or `services/` files (except reading them)
 - `.routing/**`, `.gemini/**`, `frontendnet/**`
 - Any other `.tickets/**` folder, or `B011`'s `task.md`, `spec.md`, `audit.md`
 
@@ -94,3 +110,58 @@ Follow every check in [spec.md](spec.md).
 ## Change log
 
 Write `.tickets/B011-prod-hardening-and-deploy-scripts/changelog.md` listing files touched, verification results, and security checks verified.
+
+---
+
+## Audit Remediation Scope (`AUD-B011-01`–`07` + `REQ-008`–`010`)
+
+Read `.tickets/B011-prod-hardening-and-deploy-scripts/audit.md` and `frontendnet/.routing/BACK-HANDOFF.md` (`REQ-008`, `REQ-009`, `REQ-010`) in full and resolve ALL findings below:
+
+1. **`AUD-B011-01` (High) + `REQ-010` #5 — Safe Production Bootstrap & Remote Seed Guard:**
+   - Remove the `NODE_ENV=development ... seed.js || true` step from `backendnode/deploy/README.md`.
+   - Create `backendnode/src/db/bootstrap.ts` (and add `"db:bootstrap": "tsx src/db/bootstrap.ts"` in `package.json`) exporting `runProductionBootstrap(dbClient, { adminEmail, adminPassword, adminNombre?, userEmail?, userPassword?, userNombre? })`:
+     - Validates `adminEmail` (non-empty valid email) and `adminPassword` against **`StrongPasswordSchema`** (from `../schemas/common.schema`) — rejects weak passwords and never hashes `'patito'`.
+     - Idempotently seeds `SEED_ROLES`, `SEED_CATEGORIAS`, `SEED_PRODUCTOS`, `SEED_CATEGORIA_PRODUCTOS`, and upserts the single protected `Administrador` account (`protegido: true`) using `bcrypt.hash(adminPassword, 10)` (and optional customer account if `userEmail`+`userPassword` are both provided and valid under `StrongPasswordSchema`).
+     - CLI entry reads `ADMIN_EMAIL`, `ADMIN_PASSWORD`, optional `ADMIN_NOMBRE`, `USER_EMAIL`, `USER_PASSWORD`, `USER_NOMBRE` from env and runs cleanly under `NODE_ENV=production`.
+   - In `backendnode/src/db/seed.ts`, update `assertSeedAllowed(nodeEnv: string, dbHost = 'localhost', allowRemoteDevSeed = false)` to reject `nodeEnv === 'production'` AND reject non-loopback `dbHost` (anything other than `localhost`, `127.0.0.1`, `::1`) unless `allowRemoteDevSeed === true` (`--allow-remote-dev-seed` CLI flag). Update `tests/db.test.ts` accordingly.
+2. **`AUD-B011-02` (Medium) — Eliminate Spoofable `request-ip` Across All Controllers:**
+   - Export `buildAuditContext(req: Request, actorEmailOverride?: string): AuditContext` in `backendnode/src/middlewares/bitacora.middleware.ts` using `extractClientIp(req)` and `actorEmailOverride ?? req.decodedToken?.[ClaimTypes.Name] ?? 'invitado'`.
+   - Replace `requestIp.getClientIp(req)` with `buildAuditContext(req)` in all 6 controllers: `auth.controller.ts`, `usuarios.controller.ts`, `categorias.controller.ts`, `productos.controller.ts`, `archivos.controller.ts`, `pedidos.controller.ts`.
+   - Remove `request-ip` and `@types/request-ip` from `backendnode/package.json` and update `package-lock.json` cleanly (`npm install --package-lock-only` or `npm uninstall request-ip @types/request-ip`).
+3. **`AUD-B011-03` (Medium) — Dual-Layer Login Rate Limiter & IP-Only Registration Limiter:**
+   - In `backendnode/src/middlewares/ratelimit.middleware.ts`:
+     - Keep `createAuthRateLimiter` (`${ip}:${normalizedEmail}`, default 10 / 15 min) for login isolation behind the BFF.
+     - Add `createLoginIpRateLimiter` (key = `extractClientIp(req)` only, default `max: 100`, `windowMs: 15 * 60 * 1000`).
+     - Add `createRegisterRateLimiter` (key = `extractClientIp(req)` only, default `max: 5`, `windowMs: 60 * 60 * 1000`).
+   - In `backendnode/src/routes/auth.routes.ts`:
+     - Expose `loginIpRateLimiter?: RequestHandler` alongside `rateLimiter` and `registerRateLimiter` in `AuthRouterDeps`.
+     - Mount `POST /` with `[loginIpLimiter, limiter, validate({ body: LoginRequestSchema }), controller.login]`.
+     - Mount `POST /registro` with `[registerLimiter, validate({ body: RegisterRequestSchema }), controller.register]` where default `registerLimiter` is `createRegisterRateLimiter()` (IP-only).
+4. **`AUD-B011-04` (Medium) + `REQ-008` + `REQ-010` #1, #2, #6 — DB-Agnostic `SCHEMA.sql`, Unified DB Name & Hardened Backups:**
+   - Remove `CREATE DATABASE IF NOT EXISTS ...` and `USE ...;` from `backendnode/db/SCHEMA.sql` so it is pure table DDL.
+   - Standardize default `DB_DATABASE=mercadolibrenode` across `.env.example`, `setup-env.mjs`, `install-db.sh`, `install-api.sh`, `backup-db.sh`, `backup-db.service`, and `deploy/README.md`.
+   - In `backendnode/scripts/setup-db.mjs`:
+     - Create database `` `CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci` `` first.
+     - Check `information_schema.tables` for `SequelizeMeta` in `dbName` (`REQ-008`); if found, throw a clear error telling the developer to run `DROP DATABASE \`${dbName}\`;` and re-run `npm run setup:db -- --seed`.
+     - Connect with `database: dbName` when applying `SCHEMA.sql`.
+   - In `backendnode/deploy/backup-db.sh`:
+     - Add `umask 077` right after `set -euo pipefail` (`REQ-010` #2).
+     - Verify table count (`SHOW TABLES`) > 0 before dumping, clean up any partial dump on failure (`trap`), verify `gzip -t "$BACKUP_FILE"` and non-empty uncompressed payload (`AUD-B011-04`).
+   - In `backendnode/deploy/install-db.sh`:
+     - Run ``CREATE DATABASE IF NOT EXISTS `${DB_DATABASE}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`` and load schema with `mysql --defaults-extra-file="$BACKUP_CNF" "$DB_DATABASE" < "$SCHEMA_SQL"`.
+     - Write `backup-db.service` drop-in or templated `Environment=DB_DATABASE=${DB_DATABASE}` so backups always target the configured DB.
+     - Add `/etc/systemd/system/mysql.service.d/wait-network.conf` (`[Unit]\nWants=network-online.target\nAfter=network-online.target`) (`REQ-010` #6).
+5. **`AUD-B011-05` + `REQ-009` — Gitignore TLS Keys & Certs:**
+   - Add `backendnode/deploy/certs/`, `*.key`, and `*.pem` to root `.gitignore`.
+6. **`AUD-B011-06` & `AUD-B011-07` — Password Safety, Signed NodeSource Keyring & Scoped SSH:**
+   - In `install-db.sh` and `install-api.sh`, validate passwords/secrets reject `\`, `'`, `"`, `#`, and whitespace up front (e.g. `[[ "$val" =~ [\\\'\"#[[:space:]]] ]]` or strict allowlist regex). When `DB_REQUIRE_SSL=true` in `install-db.sh`, add `REQUIRE SSL` to `CREATE/ALTER USER`.
+   - In `install-api.sh`, install Node 22 LTS via the official NodeSource signed APT keyring (`/usr/share/keyrings/nodesource.gpg` + `/etc/apt/sources.list.d/nodesource.list`) — NO `| bash`!
+   - In both `install-db.sh` and `install-api.sh`, replace bare `ufw allow 22/tcp` with `MGMT_CIDR="${MGMT_CIDR:-10.10.10.0/24}"` (`ufw allow from "$MGMT_CIDR" to any port 22 proto tcp`) plus auto-allowing `${SSH_CONNECTION%% *}/32` if invoked over an active SSH session (so `vagrant ssh` on libvirt/VirtualBox NAT never locks itself out!).
+   - Update `backendnode/deploy/README.md` (`REQ-010` #4) to recommend `frontendnet/deploy/deploy-all.sh` / minimal staged per-role bundles (never uploading `node_modules` or `.env.deploy` with DB root password to `api`) and `dist/db/bootstrap.js` for production admin bootstrap; update `backendnode/README.md` with the `REQ-008` `SequelizeMeta` hint.
+7. **Required Regression Tests (in `tests/prod-hardening.test.ts`, `tests/setup.test.ts`, `tests/db.test.ts`, `tests/auth.test.ts`):**
+   - `AUD-B011-01`: `deploy/README.md` & `deploy/*.sh` contain no `NODE_ENV=development` + `seed`; `runProductionBootstrap` rejects weak `ADMIN_PASSWORD` (incl. `'patito'`) and succeeds with strong password; `assertSeedAllowed` rejects non-loopback `DB_HOST` unless `allowRemoteDevSeed=true`.
+   - `AUD-B011-02`: Integration tests through `createApp({ trustProxy: false })` sending `POST /api/auth` (bad password) and `POST /api/categorias` with spoofed `X-Client-IP: 6.6.6.6` and `X-Forwarded-For: 7.7.7.7`, asserting bitacora receives socket IP; static test asserting `0` occurrences of `request-ip` in `backendnode/src/`.
+   - `AUD-B011-03`: Per-IP login ceiling (`N+1` distinct emails → `429`), per-IP registration ceiling (6 distinct emails → 6th returns `429`), and `alice@uv.mx`/`bob@uv.mx` isolation below ceiling.
+   - `AUD-B011-04`: `SCHEMA.sql` contains no `CREATE DATABASE` or `USE`; `install-db.sh` passes `"$DB_DATABASE"` to `mysql` when loading `SCHEMA.sql`; default `DB_DATABASE` matches identically across `install-db.sh`, `install-api.sh`, `backup-db.sh`, `backup-db.service`, and `.env.example`; `backup-db.sh` sets `umask 077`.
+   - `AUD-B011-05`: `git check-ignore -q backendnode/deploy/certs/x.key` exits `0`.
+   - `AUD-B011-06` & `AUD-B011-07`: static checks confirming `install-db.sh` rejects backslashes/quotes in passwords, and deploy scripts contain no `| bash` and no bare `ufw allow 22/tcp`.

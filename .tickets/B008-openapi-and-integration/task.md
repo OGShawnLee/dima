@@ -2,7 +2,7 @@
 
 | ID | Status | Model | Track | Services | Spec |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `B008` | `implemented` | `Gemini 4 Hydrogen (Medium)` | `C` | All 7 services (`auth`, `bitacora`, `roles`, `usuarios`, `categorias`, `productos`, `archivos`) + OpenAPI 3.0.3 (`/openapi.json`, `/swagger`, `/docs`) | [spec.md](spec.md) |
+| `B008` | `completed` | `Gemini 4 Hydrogen (Medium)` | `C` | All 7 services (`auth`, `bitacora`, `roles`, `usuarios`, `categorias`, `productos`, `archivos`) + OpenAPI 3.0.3 (`/openapi.json`, `/swagger`, `/docs`) | [spec.md](spec.md) |
 
 ## Security & Contract Items Addressed
 
