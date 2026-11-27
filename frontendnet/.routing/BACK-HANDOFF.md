@@ -77,3 +77,10 @@
 - **Request:** Document in `backendnode/README.md` (and/or detect in `scripts/setup-db.mjs`) that an existing `mercadolibrenode` created by the course's Sequelize project (has a `SequelizeMeta` table; `usuario.id` is `CHAR(36) COLLATE utf8mb4_bin`, tables `utf8mb4_0900_ai_ci`) cannot be upgraded in place: `CREATE TABLE IF NOT EXISTS` skips the old tables, and `fk_pedido_usuario` fails with *"Referencing column 'usuarioid' and referenced column 'id' … are incompatible"* (`VARCHAR(36) utf8mb4_unicode_ci` vs `CHAR(36) utf8mb4_bin`). Suggested README fix: `DROP DATABASE mercadolibrenode;` then `npm run setup:db -- --seed`. Optional: have `setup:db` abort early with that hint when `SequelizeMeta` exists.
 - **Why:** Hit by the frontend team while preparing `F007` smoke tests (`GET /api/pedidos` → `500`). Resolved locally by rebuilding the DB; all 9 tables are now `utf8mb4_unicode_ci` and `GET /api/pedidos` → `200`.
 - **Proposed contract:** None (docs/tooling only).
+
+## 2026-11-26 — `backendnode/deploy/certs/` is not gitignored (`REQ-009`)
+- **Priority:** High (secret hygiene; TLS private key could be committed)
+- **Needed by:** before step B of `F008` (2026-11-27 08:30)
+- **Request:** `backendnode/deploy/README.md` §1 step 3 says to copy `api.dima.lab.{crt,key}` and `dima-lab-ca.crt` into `backendnode/deploy/certs/` "(gitignored)", but no `.gitignore` rule covers that path (`git check-ignore backendnode/deploy/certs/x.crt` → not ignored). Add `backendnode/deploy/certs/` (and ideally `*.key`) to a `.gitignore`, or have `install-api.sh` accept a cert directory outside the repo.
+- **Why:** OWASP A02 / CWE-312 — a committed private key would have to be rotated and the lab CA reissued. Until fixed, the frontend's `deploy-all.sh` (F008) uploads certs to the VMs directly from the already-ignored `frontendnet/deploy/certs/` and never writes keys under `backendnode/`.
+- **Proposed contract:** None (repo hygiene only).

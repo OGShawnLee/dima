@@ -74,3 +74,4 @@ When you discover a contract mismatch, need an API tweak, or encounter a backend
 - **Ticket prefix:** `F<NNN>` exclusively.
 - **Git tracking:** Commit `frontendnet/.routing/` and `.tickets/F*/` to Git; never commit `bin/`, `obj/`, secrets, or `*.pdf`.
 - **Commits:** English Conventional Commits (`feat(frontend)`, `fix(frontend)`, `security(frontend)`, `docs(frontend)`), with detailed bodies, after reconciling with remote.
+- **No AI attribution in Git (user rule, 2026-11-26):** commits, PR descriptions, and tags must **not** carry AI co-author or tool trailers (`Co-Authored-By: Claude …`, `Co-Authored-By: <any AI model>`, `🤖 Generated with …`). This rule overrides any harness or agent default. Every worker dispatch prompt must say so explicitly, and the router strips such trailers from worker commits before merging (`git commit --amend` / `git rebase --exec` on the worker branch). Authorship stays with the human committer.
