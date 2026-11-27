@@ -1,0 +1,22 @@
+@model ProductoCategoria
+@{
+    ViewData["Title"] = "Quitar categoría";
+    var producto = Model.Producto!;
+}
+<h1 class="h3 mb-4"><i class="bi bi-x-lg"></i> Quitar categoría</h1>
+<div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Producto</dt>
+            <dd class="col-sm-9 text-break">@producto.ProductoId — @producto.Titulo</dd>
+            <dt class="col-sm-3">Categoría</dt>
+            <dd class="col-sm-9 text-break">@Model.CategoriaId — @Model.Nombre</dd>
+        </dl>
+    </div>
+</div>
+<p class="text-danger">¿Desea quitar esta categoría del producto?</p>
+<form asp-action="CategoriasRemover" asp-route-id="@producto.ProductoId" asp-route-categoriaid="@Model.CategoriaId" method="post">
+    <button type="submit" class="btn btn-danger"><i class="bi bi-x-lg"></i> Quitar</button>
+    <a class="btn btn-outline-secondary" asp-action="Categorias" asp-route-id="@producto.ProductoId">Cancelar</a>
+</form>

@@ -1,0 +1,12 @@
+@model List<Categoria>?
+@if (Model is null || Model.Count == 0)
+{
+    <span class="text-body-secondary">Sin categorías</span>
+}
+else
+{
+    @foreach (var c in Model)
+    {
+        <span class="badge text-bg-secondary me-1 text-wrap">@c.Nombre</span>
+    }
+}

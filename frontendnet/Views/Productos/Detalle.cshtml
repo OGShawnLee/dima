@@ -1,0 +1,14 @@
+@model Producto
+@{
+    ViewData["Title"] = "Detalle de producto";
+}
+<h1 class="h3 mb-4"><i class="bi bi-box-seam"></i> Detalle de producto</h1>
+<partial name="_MensajesPartial" />
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <partial name="_DetallePartial" model="Model" />
+    </div>
+</div>
+<a class="btn btn-primary" asp-action="Editar" asp-route-id="@Model.ProductoId"><i class="bi bi-pencil"></i> Editar</a>
+<a class="btn btn-outline-info" asp-action="Categorias" asp-route-id="@Model.ProductoId"><i class="bi bi-tags"></i> Categorías</a>
+<a class="btn btn-outline-secondary" asp-action="Index"><i class="bi bi-arrow-left"></i> Regresar</a>

@@ -1,0 +1,50 @@
+@model Producto
+@{
+    var archivos = ViewData["Archivos"] as List<Archivo> ?? [];
+    // Culture-independent value: the attempted value on redisplay, else the model with "." as separator.
+    string precio = ViewData.ModelState[nameof(Producto.Precio)]?.AttemptedValue ?? Producto.ValorPrecio(Model.Precio);
+    string placeholder = "https://placehold.co/300x200?text=Sin+portada";
+    var actual = archivos.FirstOrDefault(a => a.ArchivoId == Model.ArchivoId);
+    string? actualUrl = Model.ArchivoId is int id ? Url.Action("Imagen", "Archivos", new { id, v = actual?.Nombre }) : null;
+}
+<div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+<div class="row g-4">
+    <div class="col-md-7">
+        <div class="mb-3">
+            <label asp-for="Titulo" class="form-label"></label>
+            <input asp-for="Titulo" class="form-control" maxlength="255" autofocus />
+            <span asp-validation-for="Titulo" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Descripcion" class="form-label"></label>
+            <textarea asp-for="Descripcion" class="form-control" rows="4" maxlength="5000"></textarea>
+            <span asp-validation-for="Descripcion" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Precio" class="form-label"></label>
+            <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input asp-for="Precio" type="text" inputmode="decimal" class="form-control" value="@precio"
+                       placeholder="0.00" autocomplete="off"
+                       data-val-number="El campo Precio debe ser un número." />
+            </div>
+            <div class="form-text">Entre 0.01 y 9999999, con hasta dos decimales y punto como separador.</div>
+            <span asp-validation-for="Precio" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="ArchivoId" class="form-label"></label>
+            <select asp-for="ArchivoId" class="form-select">
+                <option value="">Sin portada</option>
+                @foreach (var a in archivos)
+                {
+                    <option value="@a.ArchivoId" data-v="@a.Nombre">@a.ArchivoId — @a.Nombre</option>
+                }
+            </select>
+            <span asp-validation-for="ArchivoId" class="text-danger small"></span>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <img src="@(actualUrl ?? placeholder)" data-url="@Url.Content("~/Archivos/Imagen/")"
+             data-placeholder="@placeholder" alt="Vista previa de la portada" class="portada img-fluid rounded border" />
+    </div>
+</div>
