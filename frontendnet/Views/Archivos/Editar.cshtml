@@ -1,0 +1,19 @@
+@model Upload
+@{
+    ViewData["Title"] = "Editar imagen";
+}
+<h1 class="h3 mb-4"><i class="bi bi-pencil"></i> Editar imagen @Model.ArchivoId</h1>
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form asp-action="Editar" asp-route-id="@Model.ArchivoId" method="post" enctype="multipart/form-data">
+            <input type="hidden" asp-for="Nombre" />
+            <partial name="_FormularioPartial" model="Model" />
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Reemplazar</button>
+            <a asp-action="Detalle" asp-route-id="@Model.ArchivoId" class="btn btn-outline-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/portada.js" asp-append-version="true"></script>
+}
