@@ -1,7 +1,10 @@
+using frontendnet.Models;
+
 namespace frontendnet.Services;
 
-/// <summary>Typed client stub registered in Program.cs; implemented by its own ticket.</summary>
+/// <summary>Read-only audit log (<c>GET /api/bitacora</c>, ordered by id DESC).</summary>
 public class BitacoraClientService(HttpClient client)
 {
-    protected HttpClient Client { get; } = client;
+    public async Task<List<Bitacora>> GetAsync() =>
+        await client.GetFromJsonAsync<List<Bitacora>>("api/bitacora") ?? [];
 }

@@ -1,0 +1,11 @@
+@model Usuario
+<dl class="row mb-0">
+    <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Id)</dt>
+    <dd class="col-sm-9"><code>@Model.Id</code></dd>
+    <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Email)</dt>
+    <dd class="col-sm-9">@Model.Email</dd>
+    <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Nombre)</dt>
+    <dd class="col-sm-9">@Model.Nombre</dd>
+    <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Rol)</dt>
+    <dd class="col-sm-9"><span class="badge text-bg-secondary">@Model.Rol</span></dd>
+</dl>
