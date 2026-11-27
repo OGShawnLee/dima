@@ -4,9 +4,9 @@
 | :--- | :--- |
 | Ticket | `B011-prod-hardening-and-deploy-scripts` |
 | Target | `Backend` |
-| Audited Commit | `73c2bb3` |
-| Date | `2026-11-26` |
-| Verdict | `CHANGES REQUESTED` |
+| Audited Commit | `54bd67e` (fixes in `310329e`; first audit at `73c2bb3`) |
+| Date | `2026-11-27` (re-audit; first audit `2026-11-26`) |
+| Verdict | `PASS WITH NOTES` (first audit: `CHANGES REQUESTED`) |
 
 Evidence: `npm ci && npx tsc --noEmit && npx vitest run` at `73c2bb3` → `tsc` 0 errors, 13 test files / 172 tests passed. Source read: `src/config/env.ts`, `src/index.ts`, `src/app.ts`, `src/db/index.ts`, `src/middlewares/{ratelimit,bitacora,errorhandler}.middleware.ts`, all `src/controllers/*.ts`, `db/SCHEMA.sql`, `src/db/seed.ts`, `backendnode/deploy/*`, `.env.example`, root `.gitignore`.
 
@@ -26,11 +26,26 @@ Evidence: `npm ci && npx tsc --noEmit && npx vitest run` at `73c2bb3` → `tsc` 
 | Remote DB / deploy correctness (`REQ-006`/`REQ-007`) | `FAIL` | `SCHEMA.sql` hardcodes `mercadolibrenode`; deploy grants, connects and backs up `dima_db` (AUD-B011-04). TLS to DB is off by default (AUD-B011-06). |
 | Negative Tests Present | `FAIL` | `prod-hardening.test.ts` tests `extractClientIp` in isolation only. No test checks the IP actually written by a controller, no test checks per-IP limits across different emails, and no test checks the schema/deploy DB name. |
 
+## Re-Audit — 2026-11-27 @ `54bd67e`
+
+Evidence: `npm ci && npx tsc --noEmit && npx vitest run` at `54bd67e` → `tsc` 0 errors, 13 test files / 181 tests passed. Source read: `git show 310329e` (27 files), `src/db/bootstrap.ts`, `src/db/seed.ts` (`assertSeedAllowed`), `src/middlewares/{ratelimit,bitacora}.middleware.ts`, `src/routes/auth.routes.ts`, all 6 controllers, `db/SCHEMA.sql`, `deploy/{install-db,install-api,backup-db}.sh`, `deploy/nginx-api.conf`, `deploy/README.md`, root `.gitignore`. Cross-checked against `frontendnet/deploy/{deploy-all.sh,dima-proxy.conf}` and `frontendnet/Middlewares/ReenviaIpDelegatingHandler.cs`.
+
+| Finding | Result |
+| :--- | :--- |
+| `AUD-B011-01` | `RESOLVED`. `deploy/README.md` step 3 now runs `dist/db/bootstrap.js` with `ADMIN_EMAIL`/`ADMIN_PASSWORD` parsed by `EmailSchema` + `StrongPasswordSchema`; `seed.ts` refuses `production` **and** any non-loopback `DB_HOST` unless `--allow-remote-dev-seed`. The dev seed can no longer reach the remote DB by overriding `NODE_ENV`. Note: `frontendnet/deploy/deploy-all.sh` `phase_seed` still calls `seed.js` with `NODE_ENV=development`; it now fails closed against `10.10.10.30` — tracked in the F008 audit. |
+| `AUD-B011-02` | `RESOLVED`. All 6 controllers use `buildAuditContext(req)` → `extractClientIp(req)` (`req.ip`, trust-proxy aware). `grep -rn "request-ip\|getClientIp" src package.json` → 0 matches. IP chain verified end to end: web nginx overwrites `X-Forwarded-For` with `$remote_addr`, the BFF trusts it only from loopback and re-sends one hop, api nginx appends the web VM, and `TRUST_PROXY=loopback,<web>` makes `req.ip` the browser IP. |
+| `AUD-B011-03` | `RESOLVED`. `POST /api/auth` = per-IP limiter (100/15 min) → `ip:email` limiter (10/15 min); `POST /api/auth/registro` = per-IP limiter (5/h). Regression tests present in `prod-hardening.test.ts`. |
+| `AUD-B011-04` | `RESOLVED`. `SCHEMA.sql` has no `CREATE DATABASE`/`USE`; `install-db.sh` creates `${DB_DATABASE}` and loads the schema into it; grants and app config use the same name; `backup-db.sh` (`pipefail`, `umask 077`) fails on 0 tables and on an empty or corrupt dump. |
+| `AUD-B011-05` | `RESOLVED`. `git check-ignore -v backendnode/deploy/certs/x.key` → `.gitignore:31`. |
+| `AUD-B011-06` | `PARTIALLY RESOLVED`. Secrets containing `\ ' " #` or whitespace are now rejected up front in both install scripts. `DB_SSL`/`DB_REQUIRE_SSL` still default to `false`, so the API↔DB link is cleartext on the private lab network (`10.10.10.0/24`). Accepted as `Low` for the lab; keep open. |
+| `AUD-B011-07` | `RESOLVED`. SSH limited to `MGMT_CIDR` (+ optional `/32` peer); NodeSource installed from the signed APT repo with a pinned keyring; no `\| bash` remains. |
+| `AUD-B011-08` (new) | `OPEN`, `Low`. See below. |
+
 ## Findings
 
 ### AUD-B011-01 — Deploy runbook gets around the production seed guard and installs a known-password protected admin
 - **Severity:** `High`
-- **Status:** `OPEN`
+- **Status:** RESOLVED (`310329e`)
 - **Location:** `backendnode/deploy/README.md:41-45` (with `backendnode/src/db/seed.ts` `SEED_USERS` / `bcrypt.hash('patito', 10)`)
 - **CWE / OWASP:** `CWE-1392 / CWE-798 / OWASP A07:2021`
 - **Issue / Exploit Scenario:** Step 3 runs `sudo -u backendnode NODE_ENV=development node --env-file=/etc/backendnode/backendnode.env dist/db/seed.js`. Variables that already exist in the environment take precedence over `--env-file`, and the vagrant sudoers rule (`ALL`) permits command-line env vars. So `assertSeedAllowed` sees `development` and seeds the production DB. That creates `gvera@uv.mx` (`Administrador`, `protegido=true`) and `patito@uv.mx`, both with password `patito`, which is published in the course PDF. Login accepts any password length (`LoginRequestSchema.password.min(1)`). `UsuariosService.update/delete` refuse to touch `protegido` users, and no password-change endpoint exists, so the operator cannot rotate this account through the API. Anyone who reaches the web BFF can log in as Administrador. `|| true` hides any failure. This is currently masked by AUD-B011-04 (the seed would hit an empty DB); it becomes live as soon as that is fixed.
@@ -39,7 +54,7 @@ Evidence: `npm ci && npx tsc --noEmit && npx vitest run` at `73c2bb3` → `tsc` 
 
 ### AUD-B011-02 — Audit-log IPs are still taken from spoofable `request-ip` headers in every controller (`REQ-004` incomplete)
 - **Severity:** `Medium`
-- **Status:** `OPEN`
+- **Status:** RESOLVED (`310329e`)
 - **Location:** `backendnode/src/controllers/auth.controller.ts:17,28`, `usuarios.controller.ts:22`, `categorias.controller.ts:18`, `productos.controller.ts:20`, `archivos.controller.ts:23`, `pedidos.controller.ts:17`
 - **CWE / OWASP:** `CWE-348 / CWE-117 / OWASP A09:2021`
 - **Issue / Exploit Scenario:** B011 switched only `bitacora.middleware.ts` and `errorhandler.middleware.ts` to `extractClientIp(req)`. Every service writes `bitacora` with `audit.ip` built in the controller, and those calls use `requestIp.getClientIp(req)`. That function trusts `X-Client-IP`, the leftmost `X-Forwarded-For`, `CF-Connecting-IP` and similar headers unconditionally, whatever `TRUST_PROXY` says. Verified: `getClientIp({headers:{'x-client-ip':'6.6.6.6'}, socket:{remoteAddress:'127.0.0.1'}})` returns `6.6.6.6`. An attacker brute-forcing `POST /api/auth` can therefore make every `usuario.login.fallido` row show any IP. A malicious admin can likewise forge the IP on `usuarios.eliminar` and similar actions, which defeats forensic attribution. `req.bitacora` (the correct path) exists but is never called.
@@ -48,7 +63,7 @@ Evidence: `npm ci && npx tsc --noEmit && npx vitest run` at `73c2bb3` → `tsc` 
 
 ### AUD-B011-03 — `ip:email` rate-limit key removes the per-IP ceiling: unlimited password spraying and mass registration
 - **Severity:** `Medium`
-- **Status:** `OPEN`
+- **Status:** RESOLVED (`310329e`)
 - **Location:** `backendnode/src/middlewares/ratelimit.middleware.ts:23-33`, `backendnode/src/routes/auth.routes.ts:20-22`
 - **CWE / OWASP:** `CWE-307 / CWE-770 / OWASP API4:2023, A07:2021`
 - **Issue / Exploit Scenario:** The key is `${ip}:${email}`, so each new email gets a fresh bucket of 10. From one IP an attacker can (a) spray a common password across unlimited known emails on `POST /api/auth`, and (b) create unlimited accounts on `POST /api/auth/registro` by varying the email, which bypasses the B009 registration throttle. Each request costs one bcrypt-10 hash (~45–50 ms CPU), so this is also a cheap CPU-exhaustion vector against the single Node process. The intent (avoid cross-user lockout behind the BFF) is valid, but it needs a second, coarser control.
@@ -57,7 +72,7 @@ Evidence: `npm ci && npx tsc --noEmit && npx vitest run` at `73c2bb3` → `tsc` 
 
 ### AUD-B011-04 — Database name mismatch: schema goes to `mercadolibrenode`, the app and backups use `dima_db`
 - **Severity:** `Medium`
-- **Status:** `OPEN`
+- **Status:** RESOLVED (`310329e`)
 - **Location:** `backendnode/db/SCHEMA.sql:5,9`; `backendnode/deploy/install-db.sh:39,113,121`; `install-api.sh:40`; `backup-db.sh:8`; `backup-db.service:7`; `.env.example:2`
 - **CWE / OWASP:** `CWE-1188 / OWASP A05:2021` (availability and backup integrity)
 - **Issue / Exploit Scenario:** `SCHEMA.sql` runs `CREATE DATABASE mercadolibrenode; USE mercadolibrenode;`, so `install-db.sh` builds every table there. It then grants `dima_app` DML only on `dima_db.*`, which is never created. `install-api.sh` writes `DB_DATABASE=dima_db`. As a result, every API query fails (`500`), and `/health` still reports `ok` because it never touches the DB. `mysqldump --databases dima_db` fails nightly under `pipefail`, so REQ-007 backups never contain data. The failure is silent apart from the journal. The likely operator "fix" is to widen grants to `*.*`, which would break least privilege.
@@ -66,7 +81,7 @@ Evidence: `npm ci && npx tsc --noEmit && npx vitest run` at `73c2bb3` → `tsc` 
 
 ### AUD-B011-05 — `backendnode/deploy/certs/` (TLS private key) is not gitignored, although the runbook says it is
 - **Severity:** `Low`
-- **Status:** `OPEN`
+- **Status:** RESOLVED (`310329e`)
 - **Location:** root `.gitignore`; `backendnode/deploy/README.md:25`; `install-api.sh:18`
 - **CWE / OWASP:** `CWE-540 / OWASP A05:2021`
 - **Issue / Exploit Scenario:** `git check-ignore backendnode/deploy/certs/api.dima.lab.key` returns nothing; only `frontendnet/deploy/certs/` is ignored. A teammate following the runbook and running `git add -A` would commit the API TLS private key.
@@ -75,7 +90,7 @@ Evidence: `npm ci && npx tsc --noEmit && npx vitest run` at `73c2bb3` → `tsc` 
 
 ### AUD-B011-06 — Weaker-than-needed deploy defaults (plaintext DB link, fragile secret quoting)
 - **Severity:** `Low`
-- **Status:** `OPEN`
+- **Status:** PARTIALLY RESOLVED (`310329e`) — see re-audit notes
 - **Location:** `install-api.sh:42,100-117`; `install-db.sh:43,98-102,107-121`
 - **CWE / OWASP:** `CWE-319 / CWE-116`
 - **Issue / Exploit Scenario:** (a) `DB_SSL=false` and `DB_REQUIRE_SSL=false` by default, so the app password and all data cross `10.10.10.20→10.10.10.30` in cleartext, and the app user is not created with `REQUIRE SSL`. (b) The SQL password escaping only doubles `'`. MySQL also treats `\` as an escape, so a generated password ending in `\` breaks the statement. Unquoted `printf` into the systemd `EnvironmentFile` and `my.cnf` mangles values containing `"`, `\`, `#` or leading spaces. All inputs are operator-supplied, so these are robustness issues, not an injection path.
@@ -84,9 +99,18 @@ Evidence: `npm ci && npx tsc --noEmit && npx vitest run` at `73c2bb3` → `tsc` 
 
 ### AUD-B011-07 — SSH open to any source and an unpinned `curl | bash` Node install
 - **Severity:** `Low`
-- **Status:** `OPEN`
+- **Status:** RESOLVED (`310329e`)
 - **Location:** `install-api.sh:59,154`; `install-db.sh:129`
 - **CWE / OWASP:** `CWE-494 / OWASP A08:2021`
 - **Issue / Exploit Scenario:** `ufw allow 22/tcp` exposes SSH from any network. NodeSource `setup_22.x` is piped to `bash` as root without integrity pinning.
 - **Required Fix:** Restrict SSH to the management subnet (`ufw allow from 10.10.10.0/24 to any port 22`, or a `MGMT_CIDR` variable). Install Node from the NodeSource signed APT repo with a pinned keyring (same pattern as the MySQL repo block), not `curl | bash`.
 - **Required Regression Test:** Add a static test asserting that the deploy scripts contain no `| bash` and no unrestricted `ufw allow 22/tcp`.
+
+### AUD-B011-08 — MySQL bind-address override is loaded before the distro default, so 3306 stays on loopback
+- **Severity:** `Low` (availability; fails closed)
+- **Status:** `OPEN` — fix exists in the operator's local working tree (rename to `zz-dima.cnf`), not yet on `origin/main`
+- **Location:** `backendnode/deploy/install-db.sh:96-102`
+- **CWE / OWASP:** `CWE-1188 / OWASP A05:2021`
+- **Issue / Exploit Scenario:** MySQL reads `/etc/mysql/mysql.conf.d/*.cnf` in alphabetical order and the last value wins. On Ubuntu 24.04, `mysqld.cnf` (sorted after `99-dima.cnf`) sets `bind-address = 127.0.0.1`, so the DB never listens on `10.10.10.30` and the API cannot connect. This was observed live during the F008 step B deployment. It is not an exposure, but the likely operator workaround (`bind-address = 0.0.0.0` in the distro file, or opening 3306 more widely in ufw) would weaken the deployment. The same ordering also silently drops `require_secure_transport = ON` when `DB_REQUIRE_SSL=true`.
+- **Required Fix:** Write the drop-in as `/etc/mysql/mysql.conf.d/zz-dima.cnf`, and `rm -f /etc/mysql/mysql.conf.d/99-dima.cnf` on re-runs. After `systemctl restart mysql`, fail the script unless `ss -ltn` shows `${DB_BIND_ADDRESS}:3306`.
+- **Required Regression Test:** Add a static test in `tests/setup.test.ts` asserting that `install-db.sh` writes a drop-in whose name sorts after `mysqld.cnf` (e.g. matches `zz-`). Add a live check in the deploy runbook: `sudo ss -ltn | grep '10.10.10.30:3306'`.

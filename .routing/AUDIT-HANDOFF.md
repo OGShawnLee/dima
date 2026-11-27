@@ -83,3 +83,63 @@ _No audits recorded yet. First entry will be appended after Ticket `B001` reache
 - **Report:** [audit.md](../.tickets/B011-prod-hardening-and-deploy-scripts/audit.md)
 - **Blocking Findings (Critical/High/Medium):** `4` (`AUD-B011-01` High, `AUD-B011-02` Medium, `AUD-B011-03` Medium, `AUD-B011-04` Medium)
 - **Action Needed:** Send `AUD-B011-01`–`AUD-B011-04` to a warm worker (Lows `AUD-B011-05`–`07` recommended in the same pass). Re-audit B011 after the fix commit.
+
+## 2026-11-27 — `B011-prod-hardening-and-deploy-scripts` (`Backend`) — `PASS WITH NOTES`
+- **Audited Commit:** `54bd67e`
+- **Report:** [audit.md](../.tickets/B011-prod-hardening-and-deploy-scripts/audit.md)
+- **Blocking Findings (Critical/High/Medium):** `0` (`None`)
+- **Action Needed:** Close as completed (re-audit of `310329e`: `AUD-B011-01`–`05`, `07` resolved; `06` partially resolved, Low). Commit the pending MySQL drop-in rename for Low `AUD-B011-08` (`zz-dima.cnf`) before the F008 step B deployment.
+
+## 2026-11-27 — `F001-mvc-scaffold-auth` (`Frontend`) — `PASS WITH NOTES`
+- **Audited Commit:** `54bd67e`
+- **Report:** [audit.md](../.tickets/F001-mvc-scaffold-auth/audit.md)
+- **Blocking Findings (Critical/High/Medium):** `0` (`None`)
+- **Action Needed:** Close as completed. Optional Low: `AUD-F001-01` (POST logout / absolute cookie lifetime).
+
+## 2026-11-27 — `F002-categorias-crud` (`Frontend`) — `PASS`
+- **Audited Commit:** `54bd67e`
+- **Report:** [audit.md](../.tickets/F002-categorias-crud/audit.md)
+- **Blocking Findings (Critical/High/Medium):** `0` (`None`)
+- **Action Needed:** Close as completed.
+
+## 2026-11-27 — `F003-archivos-image-proxy` (`Frontend`) — `PASS WITH NOTES`
+- **Audited Commit:** `54bd67e`
+- **Report:** [audit.md](../.tickets/F003-archivos-image-proxy/audit.md)
+- **Blocking Findings (Critical/High/Medium):** `0` (`None`)
+- **Action Needed:** Close as completed. Optional Low: `AUD-F003-01` (`[RequestSizeLimit]` on upload actions).
+
+## 2026-11-27 — `F004-productos-crud` (`Frontend`) — `PASS`
+- **Audited Commit:** `54bd67e`
+- **Report:** [audit.md](../.tickets/F004-productos-crud/audit.md)
+- **Blocking Findings (Critical/High/Medium):** `0` (`None`)
+- **Action Needed:** Close as completed.
+
+## 2026-11-27 — `F005-usuarios-bitacora` (`Frontend`) — `PASS`
+- **Audited Commit:** `54bd67e`
+- **Report:** [audit.md](../.tickets/F005-usuarios-bitacora/audit.md)
+- **Blocking Findings (Critical/High/Medium):** `0` (`None`)
+- **Action Needed:** Close as completed.
+
+## 2026-11-27 — `F006-comprar-carrito` (`Frontend`) — `PASS`
+- **Audited Commit:** `54bd67e`
+- **Report:** [audit.md](../.tickets/F006-comprar-carrito/audit.md)
+- **Blocking Findings (Critical/High/Medium):** `0` (`None`)
+- **Action Needed:** Close as completed.
+
+## 2026-11-27 — `F007-registro-pedidos` (`Frontend`) — `PASS`
+- **Audited Commit:** `54bd67e`
+- **Report:** [audit.md](../.tickets/F007-registro-pedidos/audit.md)
+- **Blocking Findings (Critical/High/Medium):** `0` (`None`)
+- **Action Needed:** Close as completed.
+
+## 2026-11-27 — `F008-production-deploy` (`Frontend`) — `CHANGES REQUESTED`
+- **Audited Commit:** `54bd67e`
+- **Report:** [audit.md](../.tickets/F008-production-deploy/audit.md)
+- **Blocking Findings (Critical/High/Medium):** `1` (`AUD-F008-01` High)
+- **Action Needed:** Fix `AUD-F008-01` before step B: replace the dev seed in `deploy-all.sh` `phase_seed` with `dist/db/bootstrap.js` and generated admin/user credentials. `AUD-F008-02` (Low, SSH CIDR) in the same pass. Re-audit after the fix commit.
+
+## 2026-11-27 — `F009-app-hardening` (`Frontend`) — `PASS`
+- **Audited Commit:** `54bd67e`
+- **Report:** [audit.md](../.tickets/F009-app-hardening/audit.md)
+- **Blocking Findings (Critical/High/Medium):** `0` (`None`)
+- **Action Needed:** Close as completed.
