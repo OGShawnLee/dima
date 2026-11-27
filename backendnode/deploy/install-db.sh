@@ -92,6 +92,7 @@ else
 fi
 
 # 3. Bind MySQL to private network interface (10.10.10.30) and wait for network-online.target
+rm -f /etc/mysql/mysql.conf.d/99-dima.cnf
 install -d -m 755 /etc/mysql/mysql.conf.d
 {
   printf '[mysqld]\n'
@@ -99,7 +100,7 @@ install -d -m 755 /etc/mysql/mysql.conf.d
   if [[ "$DB_REQUIRE_SSL" == "true" ]]; then
     printf 'require_secure_transport = ON\n'
   fi
-} > /etc/mysql/mysql.conf.d/99-dima.cnf
+} > /etc/mysql/mysql.conf.d/zz-dima.cnf
 
 install -d -m 755 /etc/systemd/system/mysql.service.d
 {
